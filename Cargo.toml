@@ -1,0 +1,10 @@
+[package]
+name = "sopipe"
+version = "0.1.0"
+authors = ["Shiwei Zhang <ylxdzsw@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+oh-my-rust = { git = "https://github.com/ylxdzsw/oh-my-rust" }
+tokio = { version = "0.2", features = ["full", "rt-core", "rt-threaded", "io-driver", "io-util", "io-std", "net", "tcp", "udp", "uds", "time", "process", "macros", "sync", "stream", "signal", "fs"] }
+futures = "0.3"
