@@ -9,6 +9,7 @@ use tokio::net;
 use tokio::io;
 use tokio::prelude::*;
 use futures::stream::StreamExt;
+use core::ffi::c_void;
 
 #[tokio::main]
 async fn main() {
@@ -20,11 +21,33 @@ async fn main() {
                 println!("Accepted connection from {:?}", socket.peer_addr());
                 let libsocks5 = load_library("socks5").unwrap();
                 unsafe {
-                    let socks5version: libloading::Symbol<unsafe extern fn(*mut [u8]) -> i32> = libsocks5.get(b"version\0").unwrap();
+                    let socks5version: libloading::Symbol<unsafe extern fn(*mut i32, *mut [u8])> = libsocks5.get(b"version\0").unwrap();
+                    let mut len = 0;
                     let mut buf = [0; 40];
-                    let len = socks5version(&mut buf);
+                    socks5version(&mut len, &mut buf);
                     println!("{}", std::str::from_utf8_unchecked(&buf[0..len as _]))
                 }
+
+                unsafe {
+                    let forward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: *mut i32, buffer: *mut u8)> = libsocks5.get(b"forward\0").unwrap();
+                    let backward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: *mut i32, buffer: *mut u8)> = libsocks5.get(b"backward\0").unwrap();
+
+                    let mut buf = [0; 2048];
+                    let forward_handle = async {
+                        while let Ok(l) = socket.read(&mut buf).await {
+                            if l == 0 {
+                                break
+                            }
+
+                            forward()
+
+                            println!("{}", std::str::from_utf8_unchecked(&buf[0..l as _]))
+                        }
+                    };
+
+                    forward_handle.await
+                }
+
                 io::copy(&mut socket, &mut io::stdout()).await.unwrap();
             }
             Err(err) => {
@@ -33,6 +56,13 @@ async fn main() {
         }
     }
 }
+
+struct SopipeStream<T: AsyncRead + AsyncWrite> {
+    socket: T,
+    dict: std::collections::BTreeMap<Box<[u8]>, Box<[u8]>>
+}
+
+
 
 // TODO: a macro that loads a library and keeps the symbols in a struct
 fn load_library(libname: &str) -> std::io::Result<libloading::Library> {
