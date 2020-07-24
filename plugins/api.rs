@@ -4,13 +4,13 @@ use core::ffi::c_void;
 
 // Note: fn pointers can only hold non-0 addresses, so the Option will still be one word long.
 #[allow(non_upper_case_globals, clippy::type_complexity)]
-static mut _sopipe_get: Option<fn(*mut c_void, i32, *const u8, *mut i32, *mut u8)> = None;
+static mut _sopipe_get: Option<extern fn(*mut c_void, i32, *const u8, *mut i32, *mut u8)> = None;
 
 #[allow(non_upper_case_globals, clippy::type_complexity)]
-static mut _sopipe_set: Option<fn(*mut c_void, i32, *const u8, i32, *const u8)> = None;
+static mut _sopipe_set: Option<extern fn(*mut c_void, i32, *const u8, i32, *const u8)> = None;
 
 #[allow(non_upper_case_globals)]
-static mut _sopipe_write: Option<fn(*mut c_void, i32, *const u8)> = None;
+static mut _sopipe_write: Option<extern fn(*mut c_void, i32, *const u8)> = None;
 
 #[allow(dead_code)]
 fn sopipe_get(stream: *mut c_void, key: &[u8], value: &mut [u8]) -> Option<usize> {
@@ -104,10 +104,10 @@ unsafe extern fn init(get: *mut c_void, set: *mut c_void, write: *mut c_void) {
 }
 
 #[no_mangle]
-unsafe extern fn forward(stream: *mut c_void, len: *mut i32, buffer: *mut u8) {
+unsafe extern fn forward(stream: *mut c_void, len: i32, buffer: *const u8) {
     let key = concat!(env!("CARGO_PKG_NAME"), "_forward_ctx").as_bytes();
 
-    if *len == -1 {
+    if len == -1 {
         if let Some(x) = sopipe_get_ptr::<ForwardContext>(stream, key) {
             Box::from_raw(x);
             sopipe_del(stream, key)
@@ -123,16 +123,16 @@ unsafe extern fn forward(stream: *mut c_void, len: *mut i32, buffer: *mut u8) {
         })
     };
 
-    let data = core::slice::from_raw_parts_mut(buffer, *len as _);
+    let data = core::slice::from_raw_parts(buffer, len as _);
 
     ctx.write(stream, data);
 }
 
 #[no_mangle]
-unsafe extern fn backward(stream: *mut c_void, len: *mut i32, buffer: *mut u8) {
+unsafe extern fn backward(stream: *mut c_void, len: i32, buffer: *const u8) {
     let key = concat!(env!("CARGO_PKG_NAME"), "_backward_ctx").as_bytes();
 
-    if *len == -1 {
+    if len == -1 {
         if let Some(x) = sopipe_get_ptr::<BackwardContext>(stream, key) {
             Box::from_raw(x);
             sopipe_del(stream, key)
@@ -148,7 +148,7 @@ unsafe extern fn backward(stream: *mut c_void, len: *mut i32, buffer: *mut u8) {
         })
     };
 
-    let data = core::slice::from_raw_parts_mut(buffer, *len as _);
+    let data = core::slice::from_raw_parts(buffer, len as _);
 
     ctx.write(stream, data);
 }
