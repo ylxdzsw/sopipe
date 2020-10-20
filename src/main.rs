@@ -12,107 +12,97 @@ use tokio::prelude::*;
 use futures::stream::StreamExt;
 use core::ffi::c_void;
 
+mod plugins;
+use plugins::Plugin;
+
+type ByteDict = std::collections::BTreeMap<Box<[u8]>, Box<[u8]>>;
+
 #[tokio::main]
 async fn main() {
     let mut listener = net::TcpListener::bind("127.0.0.1:6142").await.unwrap();
 
-    while let Some(socket_res) = listener.next().await {
-        match socket_res {
-            Ok(mut socket) => {
-                println!("Accepted connection from {:?}", socket.peer_addr());
-                let libsocks5 = load_library("socks5").unwrap();
-                unsafe {
-                    let socks5init: libloading::Symbol<unsafe extern fn(*const c_void, *const c_void, *const c_void)> = libsocks5.get(b"init\0").unwrap();
-                    socks5init(sopipe_get as *const _, sopipe_set as *const _, sopipe_write as *const _);
+    let tcplistener = TcpListener::new(&vec![("port".to_owned(), "6142".to_owned())].into_iter().collect());
+    let socks5 = unsafe { Plugin::load("socks5") };
 
-                    let socks5version: libloading::Symbol<unsafe extern fn(*mut i32, *mut [u8])> = libsocks5.get(b"version\0").unwrap();
-                    let mut len = 0;
-                    let mut buf = [0; 40];
-                    socks5version(&mut len, &mut buf);
-                    println!("{}", std::str::from_utf8_unchecked(&buf[0..len as _]))
+    let pipeline = vec![Box::new(tcplistener as &dyn Component), Box::new(socks5 as &dyn Component)];
+
+    println!("{}", unsafe { socks5.version() })
+
+
+}
+
+struct Actor {
+    comp: &'static dyn Component,
+    pipeline: &'static [Box<&'static dyn Component>],
+    args: ByteDict, // TODO: use an append-only Arc linked list (tree) because they are more copied than read
+    state: *mut c_void,
+    index: usize // its index in the pipeline
+}
+
+impl Actor {
+
+}
+
+unsafe impl Send for Actor {}
+
+#[async_trait::async_trait]
+trait Component: 'static + Sync {
+    async fn init(&'static self, args: &ByteDict) -> *mut c_void;
+    async fn start(&'static self, actor: &mut Actor);
+}
+
+struct TcpListener {
+    port: u32
+}
+
+impl TcpListener {
+    fn new(args: &std::collections::BTreeMap<String, String>) -> &'static Self {
+        leak(TcpListener {
+            port: args["port"].parse().unwrap()
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl Component for TcpListener {
+    async fn init(&'static self, _args: &ByteDict) -> *mut c_void {
+        let handle = net::TcpListener::bind(format!("127.0.0.1:{}", self.port)).await.unwrap();
+        leak(handle) as *mut _ as _
+    }
+
+    async fn start(&'static self, actor: &mut Actor) {
+        let mut listener = core::pin::Pin::new(unsafe { &mut *(actor.state as *mut net::TcpListener) });
+
+        while let Some(socket_res) = listener.as_mut().next().await {
+            match socket_res {
+                Ok(mut socket) => {
+                    println!("Accepted connection from {:?}", socket.peer_addr());
+
+                    // unsafe {
+                    //     let forward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: i32, buffer: *const u8)> = libsocks5.get(b"forward\0").unwrap();
+                    //     let backward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: i32, buffer: *const u8)> = libsocks5.get(b"backward\0").unwrap();
+
+                    //     let mut buf = [0; 2048];
+                    //     let forward_handle = async {
+                    //         while let Ok(l) = socket.read(&mut buf).await {
+                    //             if l == 0 {
+                    //                 break
+                    //             }
+
+                    //             let mut stream = SopipeStream::new();
+                    //             forward(&mut stream as *mut _ as *mut _, l as _, buf.as_ptr());
+                    //         }
+                    //     };
+
+                    //     forward_handle.await
+                    // }
+
+                    // io::copy(&mut socket, &mut io::stdout()).await.unwrap();
                 }
-
-                unsafe {
-                    let forward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: i32, buffer: *const u8)> = libsocks5.get(b"forward\0").unwrap();
-                    let backward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: i32, buffer: *const u8)> = libsocks5.get(b"backward\0").unwrap();
-
-                    let mut buf = [0; 2048];
-                    let forward_handle = async {
-                        while let Ok(l) = socket.read(&mut buf).await {
-                            if l == 0 {
-                                break
-                            }
-
-                            let mut stream = SopipeStream::new();
-                            forward(&mut stream as *mut _ as *mut _, l as _, buf.as_ptr());
-                        }
-                    };
-
-                    forward_handle.await
+                Err(err) => {
+                    println!("accept error = {:?}", err)
                 }
-
-                io::copy(&mut socket, &mut io::stdout()).await.unwrap();
-            }
-            Err(err) => {
-                println!("accept error = {:?}", err)
             }
         }
     }
-}
-
-struct SopipeStream {
-    // socket: std::sync::Arc<std::sync::Mutex<dyn AsyncWrite>>,
-    dict: std::sync::Arc<std::sync::Mutex<std::collections::BTreeMap<Box<[u8]>, Box<[u8]>>>>,
-}
-
-impl SopipeStream {
-    fn new() -> Self {
-        Self {
-            dict: std::sync::Arc::new(std::sync::Mutex::new(std::collections::BTreeMap::new()))
-        }
-    }
-}
-
-unsafe extern fn sopipe_get(stream: *mut SopipeStream, key_len: i32, key_ptr: *const u8, value_len: *mut i32, value_ptr: *mut u8) {
-    let stream = &mut *stream;
-    let key = core::slice::from_raw_parts(key_ptr, key_len as _);
-    if let Some(value) = stream.dict.lock().unwrap().get(key) {
-        if *value_len >= value.len() as _ {
-            core::slice::from_raw_parts_mut(value_ptr, *value_len as _).copy_from_slice(value)
-        }
-        *value_len = value.len() as _;
-    } else {
-        *value_len = -1
-    }
-}
-
-unsafe extern fn sopipe_set(stream: *mut SopipeStream, key_len: i32, key_ptr: *const u8, value_len: i32, value_ptr: *mut u8) {
-    let stream = &mut *stream;
-    let key = core::slice::from_raw_parts(key_ptr, key_len as _);
-    if value_len < 0 {
-        stream.dict.lock().unwrap().remove(key);
-        return
-    }
-
-    let value = core::slice::from_raw_parts(value_ptr, value_len as _);
-    stream.dict.lock().unwrap().insert(key.into(), value.into());
-}
-
-unsafe extern fn sopipe_write(stream: *mut SopipeStream, len: i32, data: *const u8) {
-    let stream = &mut *stream;
-    let buffer = core::slice::from_raw_parts(data, len as _);
-    print!("write: {}", core::str::from_utf8_unchecked(buffer))
-}
-
-// TODO: a macro that loads a library and keeps the symbols in a struct
-fn load_library(libname: &str) -> std::io::Result<libloading::Library> {
-    let name = if cfg!(windows) {
-        format!("lib{}.dll", libname)
-    } else if cfg!(unix) {
-        format!("lib{}.so", libname)
-    } else {
-        unimplemented!()
-    };
-
-    libloading::Library::new(name)
 }

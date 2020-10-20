@@ -22,13 +22,12 @@ void version(int *len, char *buffer);
 // All the functions are thread safe. However, some arguments may be shared with other threads.
 void init(
     // get(stream, key_len, key, value_len, value) read the associated value of a key in the stream.
-    // value_len should be initialized with the length of value buffer. A non-positive value will ensure the value buffer not being written.
+    // value_len should be initialized with the length of value buffer. value_len = 0 will ensure the value buffer not being written.
     // if the value buffer is not long enough, only value_len will be set.
-    // value_len will be set to -1 if the key does not exist.
+    // non-exist keys are treated as having empty values.
     void (*get)(void*, int, char*, int*, char*),
 
     // set(stream, key_len, key, value_len, value) set the associated value of a key in the stream.
-    // a negative value_len will delete the key.
     void (*set)(void*, int, char*, int, char*),
 
     // write(stream, len, buffer) write the buffer to the stream.

@@ -13,6 +13,7 @@ oh-my-rust = { git = "https://github.com/ylxdzsw/oh-my-rust" }
 tokio = { version = "0.3", features = ["rt", "rt-multi-thread", "io-util", "io-std", "net", "time", "process", "macros", "sync", "stream", "signal", "fs"] }
 futures = "0.3"
 libloading = "0.5"
+async-trait = "0.1"
 
 [workspace]
 members = [
