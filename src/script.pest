@@ -1,0 +1,28 @@
+WHITESPACE = _{ " " | "\t" | "\n" }
+
+string = @{ "\"" ~ (raw_string | escape)* ~ "\"" }
+escape = { "\\" ~ ("n" | "t" | "r" | "\\" | "0" | "\"") }
+raw_string = { (!("\\" | "\"") ~ ANY)+ }
+
+int = @{ '0'..'9' ~ ('0'..'9' | "_")* }
+
+ident =  @{ ('a'..'z' | 'A'..'Z') ~ ident_char* | "_" ~ ident_char+ }
+ident_char = _{ 'a'..'z' | 'A'..'Z' | '0'..'9' | "_" }
+
+lit = { string | int }
+
+arg = { lit | ( ident ~ "=" ~ lit )  }
+
+args = { arg ~ ("," ~ arg)* }
+
+node = { ident ~ ("(" ~ args? ~ ")")? }
+
+cnode = { node ~ ("!" ~ node)? }
+
+pipe = { cnode ~ ("=>" ~ cnode)* }
+
+stmt = { assignment | pipe }
+
+assignment = { ident ~ "<-" ~ pipe }
+
+script = { SOI ~ stmt* ~ EOI }

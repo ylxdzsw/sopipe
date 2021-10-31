@@ -1,21 +1,26 @@
 [package]
 name = "sopipe"
 version = "0.1.0"
-authors = ["Shiwei Zhang <ylxdzsw@gmail.com>"]
-edition = "2018"
-
-[profile.release]
-lto = true
-panic = 'abort'
+edition = "2021"
 
 [dependencies]
 oh-my-rust = { git = "https://github.com/ylxdzsw/oh-my-rust" }
-tokio = { version = "0.3", features = ["rt", "rt-multi-thread", "io-util", "io-std", "net", "time", "process", "macros", "sync", "stream", "signal", "fs"] }
+tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "io-util", "io-std", "net", "time", "process", "sync", "signal", "fs"] }
 futures = "0.3"
-libloading = "0.5"
-async-trait = "0.1"
+pest = "2.0"
+pest_derive = "2.0"
+smallvec = "1.7"
+# ahash = "0.7"
+# smartstring = "0.2"
+anyhow = "1.0"
+api = { path = "api" }
+
+socks5 = { path = "components/socks5", optional = true }
+tcp = { path = "components/tcp", optional = true }
+xor = { path = "components/xor", optional = true }
+
+[features]
+core = ["tcp"]
+default = ["core", "xor"]
 
 [workspace]
-members = [
-    "plugins/socks5"
-]

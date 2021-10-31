@@ -1,108 +1,92 @@
-#![allow(irrefutable_let_patterns)]
-#![allow(dead_code, unused_imports)]
-#![allow(non_camel_case_types)]
-#![deny(bare_trait_objects)]
-#![warn(clippy::all)]
-#![allow(clippy::type_complexity)]
+#![feature(new_uninit)]
+#![feature(box_into_pin)]
+#![feature(never_type)]
 
 use oh_my_rust::*;
-use tokio::net;
-use tokio::io;
-use tokio::prelude::*;
+
 use futures::stream::StreamExt;
-use core::ffi::c_void;
+use anyhow::{Context, Result};
 
-mod plugins;
-use plugins::Plugin;
+// expose to components
+pub use tokio::net;
+pub use tokio::io;
 
-type ByteDict = std::collections::BTreeMap<Box<[u8]>, Box<[u8]>>;
+type SVec<T> = smallvec::SmallVec<[T; 3]>;
 
-#[tokio::main]
-async fn main() {
-    let mut listener = net::TcpListener::bind("127.0.0.1:6142").await.unwrap();
+// mod endpoints;
+// use endpoints::*;
 
-    let tcplistener = TcpListener::new(&vec![("port".to_owned(), "6142".to_owned())].into_iter().collect());
-    let socks5 = unsafe { Plugin::load("socks5") };
+mod script;
+use script::*;
 
-    let pipeline = vec![Box::new(tcplistener as &dyn Component), Box::new(socks5 as &dyn Component)];
+pub use api::*;
 
-    println!("{}", unsafe { socks5.version() })
+// mod plugins;
+// use plugins::Plugin;
 
+#[allow(clippy::vec_init_then_push)]
+fn main() -> Result<!> {
+    // let tcplistener = TcpListener::new(&vec![("port".to_owned(), "6142".to_owned())].into_iter().collect());
+    // let socks5 = unsafe { Plugin::load("socks5") };
 
+    // let pipeline = vec![Box::new(tcplistener as &dyn Component), Box::new(socks5 as &dyn Component)];
+
+    // // println!("{}", unsafe { socks5.version() })
+
+    // let source_actor = Actor {
+    //     comp: *pipeline[0],
+    //     args: std::collections::BTreeMap::new(),
+    //     state: tcplistener.creat_forward_context("".as_bytes()),
+    //     index: 0,
+    //     direction: Direction::Forward
+    // };
+
+    // unsafe {
+    // let library =  leak(libloading::Library::new("libxor.so").unwrap());
+
+    // let hello: libloading::Symbol<'static, unsafe extern fn()> = library.get(b"hello\0").unwrap();
+
+    // hello();}
+
+    let mut components = vec![];
+
+    #[cfg(feature="xor")]
+    components.push(xor::init());
+
+    #[cfg(feature="tcp")]
+    components.push(tcp::init());
+
+    let rt = tokio::runtime::Runtime::new()?;
+
+    println!("{:?}", 42);
+    unreachable!();
 }
 
-struct Actor {
-    comp: &'static dyn Component,
-    pipeline: &'static [Box<&'static dyn Component>],
-    args: ByteDict, // TODO: use an append-only Arc linked list (tree) because they are more copied than read
-    state: *mut c_void,
-    index: usize // its index in the pipeline
-}
 
-impl Actor {
+// Additional notes:
+// Read: the buffer will be released when it return, unless it is reused in the request that returned.
+// Write: the buffer sent should be allocated by sopipe, and the ownership will be transfered back to sopipe. It can be the result of Alloc or Read requests.
 
-}
+// struct Actor {
+//     comp: &'static Node,
+//     state: *mut c_void,
+// }
 
-unsafe impl Send for Actor {}
+// trait Actor: Send {
+//     fn poll(&'static self, arg: *mut c_void) -> Request;
+// }
 
-#[async_trait::async_trait]
-trait Component: 'static + Sync {
-    async fn init(&'static self, args: &ByteDict) -> *mut c_void;
-    async fn start(&'static self, actor: &mut Actor);
-}
+// enum InstanceState {} // opaque type to prevent mixing the pointer with other types
 
-struct TcpListener {
-    port: u32
-}
+// trait Component: 'static + Sync {
+//     /// create an instance of the component, return a pointer to the state. args includes the following pairs:
+//     /// direction (String): either "forward" or "backward"
+//     /// n_outputs (usize): the number of outputs
+//     fn create(&'static self, args: &rhai::Map) -> *const InstanceState;
 
-impl TcpListener {
-    fn new(args: &std::collections::BTreeMap<String, String>) -> &'static Self {
-        leak(TcpListener {
-            port: args["port"].parse().unwrap()
-        })
-    }
-}
+//     /// spawn an actor for a given instance
+//     #[allow(clippy::mut_from_ref)]
+//     fn spawn(&'static self, instance: *const InstanceState) -> &'static mut dyn Actor;
 
-#[async_trait::async_trait]
-impl Component for TcpListener {
-    async fn init(&'static self, _args: &ByteDict) -> *mut c_void {
-        let handle = net::TcpListener::bind(format!("127.0.0.1:{}", self.port)).await.unwrap();
-        leak(handle) as *mut _ as _
-    }
+// }
 
-    async fn start(&'static self, actor: &mut Actor) {
-        let mut listener = core::pin::Pin::new(unsafe { &mut *(actor.state as *mut net::TcpListener) });
-
-        while let Some(socket_res) = listener.as_mut().next().await {
-            match socket_res {
-                Ok(mut socket) => {
-                    println!("Accepted connection from {:?}", socket.peer_addr());
-
-                    // unsafe {
-                    //     let forward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: i32, buffer: *const u8)> = libsocks5.get(b"forward\0").unwrap();
-                    //     let backward: libloading::Symbol<unsafe extern fn(stream: *mut c_void, len: i32, buffer: *const u8)> = libsocks5.get(b"backward\0").unwrap();
-
-                    //     let mut buf = [0; 2048];
-                    //     let forward_handle = async {
-                    //         while let Ok(l) = socket.read(&mut buf).await {
-                    //             if l == 0 {
-                    //                 break
-                    //             }
-
-                    //             let mut stream = SopipeStream::new();
-                    //             forward(&mut stream as *mut _ as *mut _, l as _, buf.as_ptr());
-                    //         }
-                    //     };
-
-                    //     forward_handle.await
-                    // }
-
-                    // io::copy(&mut socket, &mut io::stdout()).await.unwrap();
-                }
-                Err(err) => {
-                    println!("accept error = {:?}", err)
-                }
-            }
-        }
-    }
-}
