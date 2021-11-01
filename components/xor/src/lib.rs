@@ -1,5 +1,7 @@
 use std::{error::Error, ptr::NonNull};
 
+use api::Argument;
+
 struct Actor {
 
 }
@@ -14,7 +16,7 @@ impl api::Actor for Actor {
 }
 
 impl api::Component for Component {
-    fn create(&self) -> Result<NonNull<()>, Box<dyn Error>> {
+    fn create(&self, arguments: Vec<Argument>) -> Result<NonNull<()>, Box<dyn Error + Send + Sync>> {
 
         Err("fuck".into())
     }
@@ -22,7 +24,12 @@ impl api::Component for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["xor"]
     }
+
+    fn spawn(&self, node_state: *const ()) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
+        todo!()
+    }
 }
+
 
 pub fn init() -> &'static dyn api::Component {
     println!("Hello, world from xor");

@@ -4,7 +4,6 @@
 
 use oh_my_rust::*;
 
-use futures::stream::StreamExt;
 use anyhow::{Context, Result};
 
 // expose to components

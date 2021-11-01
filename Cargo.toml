@@ -6,12 +6,11 @@ edition = "2021"
 [dependencies]
 oh-my-rust = { git = "https://github.com/ylxdzsw/oh-my-rust" }
 tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "io-util", "io-std", "net", "time", "process", "sync", "signal", "fs"] }
-futures = "0.3"
+# futures = "0.3"
 pest = "2.0"
 pest_derive = "2.0"
 smallvec = "1.7"
 # ahash = "0.7"
-# smartstring = "0.2"
 anyhow = "1.0"
 api = { path = "api" }
 
