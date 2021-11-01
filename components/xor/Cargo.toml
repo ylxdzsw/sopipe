@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 api = { path = "../../api" }
+oh-my-rust = { git = "https://github.com/ylxdzsw/oh-my-rust" }
+thiserror = "1.0"

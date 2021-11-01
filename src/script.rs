@@ -31,7 +31,7 @@ impl Node {
 pub struct CNode(NodeIndex, NodeIndex);
 
 /// load a script, build the DAG, initialize the nodes:
-fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<&'static mut Node>> {
+pub fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<&'static mut Node>> {
     enum SymbolValue { CNode(CNode), Function(&'static dyn Component) }
 
     let mut nodes = vec![];
@@ -44,9 +44,10 @@ fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<
         }
     }
 
-    fn get_lit_value(pair: &Pair<Rule>) -> ArgumentValue {
+    fn get_lit_value(pair: Pair<Rule>) -> ArgumentValue {
+        let pair = pair.into_inner().next().unwrap();
         match pair.as_rule() {
-            Rule::string => ArgumentValue::String(pair.as_str().to_string()),
+            Rule::string => ArgumentValue::String(pair.as_str().to_string()), // TODO: escaping!
             Rule::int => ArgumentValue::Int(pair.as_str().parse().unwrap()),
             _ => unreachable!()
         }
@@ -56,8 +57,8 @@ fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<
         let mut pairs = pair.into_inner();
         let first = pairs.next().unwrap();
         match first.as_rule() {
-            Rule::lit => Argument("".to_string(), get_lit_value(&first)),
-            Rule::ident => Argument(first.to_string(), get_lit_value(&pairs.next().unwrap())),
+            Rule::lit => Argument("".to_string(), get_lit_value(first)),
+            Rule::ident => Argument(first.to_string(), get_lit_value(pairs.next().unwrap())),
             _ => unreachable!()
         }
     }
@@ -66,7 +67,7 @@ fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<
         assert_eq!(pair.as_rule(), Rule::node);
         let mut pairs = pair.into_inner();
         let ident = pairs.next().unwrap().as_str().to_string();
-        let args = pairs.next().unwrap().into_inner().map(parse_arg).collect();
+        let args = pairs.next().map(|x| x.into_inner().map(parse_arg).collect()).unwrap_or_default();
         (ident, args)
     }
 
@@ -162,13 +163,7 @@ fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<
     for (node, mut arguments) in nodes.iter_mut().zip(arguments.into_iter()) {
         arguments.push(Argument("n_outputs".into(), (node.outputs.len() as u64).into()));
         node.state = node.component.create(arguments).map_err(|e| anyhow!(e))?.as_ptr();
-        println!("{}", node.outputs.len())
     }
 
     Ok(nodes)
 }
-
-// additional functions
-// env(): get env
-// compose(forward, backward): compose two componenets, for each directions
-//   explore if we can implement a custom token and syntax for it

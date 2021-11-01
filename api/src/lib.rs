@@ -22,6 +22,22 @@ impl From<u64> for ArgumentValue {
     }
 }
 
+impl ArgumentValue {
+    pub fn as_string(&self) -> Option<&String> {
+        match &self {
+            &ArgumentValue::String(x) => Some(x),
+            _ => None
+        }
+    }
+
+    pub fn as_int(&self) -> Option<&u64> {
+        match &self {
+            &ArgumentValue::Int(x) => Some(x),
+            _ => None
+        }
+    }
+}
+
 #[async_trait]
 pub trait Actor: Send {
     async fn feed(&mut self, );

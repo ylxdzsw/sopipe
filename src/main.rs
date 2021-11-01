@@ -2,6 +2,8 @@
 #![feature(box_into_pin)]
 #![feature(never_type)]
 
+#![allow(clippy::mut_from_ref)] // to many false positives
+
 use oh_my_rust::*;
 
 use anyhow::{Context, Result};
@@ -16,7 +18,6 @@ type SVec<T> = smallvec::SmallVec<[T; 3]>;
 // use endpoints::*;
 
 mod script;
-use script::*;
 
 pub use api::*;
 
@@ -57,35 +58,9 @@ fn main() -> Result<!> {
 
     let rt = tokio::runtime::Runtime::new()?;
 
+    script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap();
+
     println!("{:?}", 42);
     unreachable!();
 }
-
-
-// Additional notes:
-// Read: the buffer will be released when it return, unless it is reused in the request that returned.
-// Write: the buffer sent should be allocated by sopipe, and the ownership will be transfered back to sopipe. It can be the result of Alloc or Read requests.
-
-// struct Actor {
-//     comp: &'static Node,
-//     state: *mut c_void,
-// }
-
-// trait Actor: Send {
-//     fn poll(&'static self, arg: *mut c_void) -> Request;
-// }
-
-// enum InstanceState {} // opaque type to prevent mixing the pointer with other types
-
-// trait Component: 'static + Sync {
-//     /// create an instance of the component, return a pointer to the state. args includes the following pairs:
-//     /// direction (String): either "forward" or "backward"
-//     /// n_outputs (usize): the number of outputs
-//     fn create(&'static self, args: &rhai::Map) -> *const InstanceState;
-
-//     /// spawn an actor for a given instance
-//     #[allow(clippy::mut_from_ref)]
-//     fn spawn(&'static self, instance: *const InstanceState) -> &'static mut dyn Actor;
-
-// }
 
