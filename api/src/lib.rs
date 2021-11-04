@@ -63,10 +63,10 @@ pub trait Runtime {
     async fn read(&mut self) -> Option<Box<[u8]>>;
 
     /// spawn an actor of the i-th output with args about the stream, return its address
-    fn spawn(&self, index: usize, args: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
+    fn spawn(&self, index: usize, metadata: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
 
     /// spawn an actor of the conjugate node with args about the stream, return its address
-    fn spawn_conjugate(&self, args: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
+    fn spawn_conjugate(&self, metadata: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
 }
 
 #[async_trait]
@@ -76,7 +76,7 @@ pub trait Actor: Send {
 
 pub trait Component: Sync {
     /// spawn an actor
-    fn spawn(&self, runtime: Box<dyn Runtime>, args: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
+    fn spawn(&self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
 }
 
 /// ComponentSpec is a factory of conponents

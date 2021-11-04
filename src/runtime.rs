@@ -35,7 +35,20 @@ impl Runtime {
 struct RuntimeHandler {
     runtime: &'static Runtime,
     node: &'static Node,
-    rx: Option<mpsc::Receiver<Box<[u8]>>> // is there a way to construct a closed Receiver?
+    rx: Option<mpsc::Receiver<Box<[u8]>>>, // is there a way to construct a closed Receiver?
+}
+
+impl RuntimeHandler {
+    pub(crate) fn spawn(&self, node: &'static Node, meta: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+        let (tx, rx) = mpsc::channel(4);
+        let handler = RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) };
+
+        let actor = self.node.comp.spawn(Box::new(handler), meta).unwrap();
+        tokio::spawn(async move {
+            actor.run().await;
+        });
+        Box::new(Address { tx })
+    }
 }
 
 #[api::async_trait]
@@ -44,19 +57,14 @@ impl api::Runtime for RuntimeHandler {
         self.rx.as_mut()?.recv().await
     }
 
-    fn spawn(&self, index: usize, args: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
-        let next_node = &self.runtime.nodes[self.node.outputs[index]];
-        let (tx, rx) = mpsc::channel(4);
-        let handler = RuntimeHandler { runtime: self.runtime, node: next_node, rx: Some(rx) };
-
-        let mut actor = self.node.comp.spawn(Box::new(handler), args).unwrap();
-        tokio::spawn(async move {
-            actor.run().await;
-        });
-        Box::new(Address { tx })
+    fn spawn(&self, index: usize, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+        let node = &self.runtime.nodes[self.node.outputs[index]];
+        RuntimeHandler::spawn(self, node, metadata)
     }
 
-    fn spawn_conjugate(&self, args: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
-        todo!()
+    fn spawn_conjugate(&self, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+        let node = &self.runtime.nodes[self.node.conj];
+        RuntimeHandler::spawn(self, node, metadata)
     }
+
 }
