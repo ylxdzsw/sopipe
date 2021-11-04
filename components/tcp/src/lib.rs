@@ -18,7 +18,9 @@ struct ForwardActor {}
 
 #[api::async_trait]
 impl api::Actor for ForwardActor {
-    async fn run(self: Box<Self>, ) {}
+    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        todo!()
+    }
 }
 
 struct Backward;
@@ -34,7 +36,9 @@ struct BackwardActor {}
 
 #[api::async_trait]
 impl api::Actor for BackwardActor {
-    async fn run(self: Box<Self>, ) {}
+    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        todo!()
+    }
 }
 
 #[derive(Error, Debug)]
@@ -65,7 +69,6 @@ impl api::ComponentSpec for Spec {
 }
 
 pub fn init() -> &'static dyn api::ComponentSpec {
-    println!("Hello, world from tcp");
     &Spec {}
 }
 

@@ -53,12 +53,12 @@ impl ArgumentValue {
 }
 
 #[async_trait]
-pub trait Address {
+pub trait Address: Send {
     async fn send(&self, msg: Box<[u8]>);
 }
 
 #[async_trait]
-pub trait Runtime {
+pub trait Runtime: Send {
     /// get a buffer
     async fn read(&mut self) -> Option<Box<[u8]>>;
 
@@ -67,11 +67,14 @@ pub trait Runtime {
 
     /// spawn an actor of the conjugate node with args about the stream, return its address
     fn spawn_conjugate(&self, metadata: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
+
+    /// indicate if this actor is a source node (no input)
+    fn is_source(&self) -> bool;
 }
 
 #[async_trait]
 pub trait Actor: Send {
-    async fn run(self: Box<Self>, );
+    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>>;
 }
 
 pub trait Component: Sync {

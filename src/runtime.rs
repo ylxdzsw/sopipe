@@ -43,9 +43,9 @@ impl RuntimeHandler {
         let (tx, rx) = mpsc::channel(4);
         let handler = RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) };
 
-        let actor = self.node.comp.spawn(Box::new(handler), meta).unwrap();
+        let actor = node.comp.spawn(Box::new(handler), meta).unwrap();
         tokio::spawn(async move {
-            actor.run().await;
+            actor.run().await.unwrap();
         });
         Box::new(Address { tx })
     }
@@ -67,4 +67,7 @@ impl api::Runtime for RuntimeHandler {
         RuntimeHandler::spawn(self, node, metadata)
     }
 
+    fn is_source(&self) -> bool {
+        self.rx.is_none()
+    }
 }

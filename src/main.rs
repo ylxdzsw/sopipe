@@ -32,7 +32,8 @@ fn main() -> Result<!> {
     components.push(tcp::init());
 
 
-    let nodes: &_ = script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap().leak();
+    // let nodes: &_ = script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap().leak();
+    let nodes: &_ = script::load_script(r#"stdin => stdout"#, &components).unwrap().leak();
 
     let runtime = runtime::Runtime::new(nodes).box_and_leak();
 
@@ -48,7 +49,7 @@ fn main() -> Result<!> {
             .map(|actor| tokio::spawn(actor.run()))
             .collect();
         for task in tasks {
-            task.await.unwrap()
+            task.await.unwrap().unwrap()
         }
     });
 

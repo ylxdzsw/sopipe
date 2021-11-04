@@ -40,7 +40,9 @@ pub enum XorError {
 
 #[api::async_trait]
 impl api::Actor for Actor {
-    async fn run(self: Box<Self>, ) {}
+    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        todo!()
+    }
 }
 
 impl api::ComponentSpec for Spec {
@@ -73,6 +75,5 @@ impl api::ComponentSpec for Spec {
 
 
 pub fn init() -> &'static dyn api::ComponentSpec {
-    println!("Hello, world from xor");
     &Spec {}
 }
