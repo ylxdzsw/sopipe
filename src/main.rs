@@ -4,25 +4,25 @@
 
 #![allow(clippy::mut_from_ref)] // to many false positives
 
+use std::collections::BTreeSet;
+
+use api::Actor;
 use oh_my_rust::*;
 
 use anyhow::{Context, Result};
 
-// expose to components
-pub use tokio::net;
-pub use tokio::io;
-
 type SVec<T> = smallvec::SmallVec<[T; 3]>;
 
-// mod endpoints;
-// use endpoints::*;
-
 mod script;
+mod runtime;
 
-pub use api::*;
+/// A component with runtime-tracked states
+struct Node {
+    comp: &'static dyn api::Component,
+    outputs: &'static [usize],
+    conj: usize
+}
 
-// mod plugins;
-// use plugins::Plugin;
 
 #[allow(clippy::vec_init_then_push)]
 fn main() -> Result<!> {
@@ -56,11 +56,26 @@ fn main() -> Result<!> {
     #[cfg(feature="tcp")]
     components.push(tcp::init());
 
-    let rt = tokio::runtime::Runtime::new()?;
+    let nodes: &_ = script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap().leak();
 
-    script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap();
+    let runtime = runtime::Runtime::new(nodes).box_and_leak();
 
-    println!("{:?}", 42);
+    let tokio_rt = tokio::runtime::Runtime::new()?;
+
+    tokio_rt.block_on(async move {
+        let non_source: BTreeSet<_> = nodes.iter()
+            .flat_map(|x| x.outputs.iter())
+            .copied().collect();
+        let tasks: Vec<_> = nodes.iter().enumerate()
+            .filter(|(i, _)| !non_source.contains(i))
+            .map(|(_, x)| runtime.spawn(x))
+            .map(|actor| tokio::spawn(actor.run()))
+            .collect();
+        for task in tasks {
+            task.await.unwrap()
+        }
+    });
+
     unreachable!();
 }
 

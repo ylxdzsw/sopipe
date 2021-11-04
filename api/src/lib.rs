@@ -1,4 +1,4 @@
-use std::{error::Error, ptr::NonNull};
+use std::{collections::BTreeMap, error::Error};
 pub use async_trait::async_trait; // expose to components
 
 #[derive(Debug, Clone)]
@@ -8,6 +8,7 @@ pub struct Argument(pub String, pub ArgumentValue);
 pub enum ArgumentValue {
     String(String),
     Int(u64),
+    Vec(Vec<ArgumentValue>)
 }
 
 impl From<String> for ArgumentValue {
@@ -19,6 +20,12 @@ impl From<String> for ArgumentValue {
 impl From<u64> for ArgumentValue {
     fn from(x: u64) -> Self {
         Self::Int(x)
+    }
+}
+
+impl<T> FromIterator<T> for ArgumentValue where ArgumentValue: std::convert::From<T> {
+    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+        Self::Vec(iter.into_iter().map(ArgumentValue::from).collect())
     }
 }
 
@@ -36,14 +43,44 @@ impl ArgumentValue {
             _ => None
         }
     }
+
+    pub fn as_vec(&self) -> Option<&[ArgumentValue]> {
+        match &self {
+            &ArgumentValue::Vec(x) => Some(x),
+            _ => None
+        }
+    }
+}
+
+#[async_trait]
+pub trait Address {
+    async fn send(&self, msg: Box<[u8]>);
+}
+
+#[async_trait]
+pub trait Runtime {
+    /// get a buffer
+    async fn read(&mut self) -> Option<Box<[u8]>>;
+
+    /// spawn an actor of the i-th output with args about the stream, return its address
+    fn spawn(&self, index: usize, args: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
+
+    /// spawn an actor of the conjugate node with args about the stream, return its address
+    fn spawn_conjugate(&self, args: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
 }
 
 #[async_trait]
 pub trait Actor: Send {
-    async fn feed(&mut self, );
+    async fn run(self: Box<Self>, );
 }
 
 pub trait Component: Sync {
+    /// spawn an actor
+    fn spawn(&self, runtime: Box<dyn Runtime>, args: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
+}
+
+/// ComponentSpec is a factory of conponents
+pub trait ComponentSpec: Sync {
     /// get the name of functions this component registers
     fn functions(&self) -> &'static [&'static str];
 
@@ -51,11 +88,8 @@ pub trait Component: Sync {
     /// the arguments includes user-provided arguments as well as the following:
     /// function_name (String): the name of function in the user script
     /// direction (String): "forward" or "backward"
-    /// n_outputs (Int): the number of outputs
-    fn create(&self, arguments: Vec<Argument>) -> Result<NonNull<()>, Box<dyn Error + Send + Sync>>;
-
-    /// spawn an actor
-    fn spawn(&self, node_state: *const ()) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
+    /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
+    fn create(&self, arguments: Vec<Argument>) -> Result<Box<dyn Component>, Box<dyn Error + Send + Sync>>;
 }
 
 

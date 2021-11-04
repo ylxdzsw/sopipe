@@ -1,20 +1,27 @@
 use oh_my_rust::*;
-use std::{error::Error, ptr::NonNull};
-
-use api::Argument;
+use std::{collections::BTreeMap, error::Error};
 use thiserror::Error;
+
+struct Spec {
+
+}
+
 
 struct Actor {
 
 }
 
 struct Component {
-
-}
-
-struct State {
     key: Option<Box<[u8]>>
 }
+
+impl api::Component for Component {
+    fn spawn(&self, runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
+        todo!()
+    }
+
+}
+
 
 #[derive(Error, Debug)]
 pub enum XorError {
@@ -33,43 +40,39 @@ pub enum XorError {
 
 #[api::async_trait]
 impl api::Actor for Actor {
-    async fn feed(&mut self, ) {}
+    async fn run(self: Box<Self>, ) {}
 }
 
-impl api::Component for Component {
-    fn create(&self, arguments: Vec<Argument>) -> Result<NonNull<()>, Box<dyn Error + Send + Sync>> {
+impl api::ComponentSpec for Spec {
+    fn create(&self, arguments: Vec<api::Argument>) -> Result<Box<dyn api::Component>, Box<dyn Error + Send + Sync>> {
         let mut key = None;
         task!("creating instance of xor");
         for arg in arguments.into_iter() {
-            let Argument(name, value) = arg;
+            let api::Argument(name, value) = arg;
             info!("{}: {:?}", name, value);
             if name.is_empty() || name == "key" {
                 if key.is_none() {
-                    match value {
-                        api::ArgumentValue::String(x) => key = Some(x.into_bytes().into_boxed_slice()),
-                        api::ArgumentValue::Int(_) => return Err(Box::new(XorError::InvalidArgument("key should be string"))),
+                    if let api::ArgumentValue::String(x) = value {
+                        key = Some(x.into_bytes().into_boxed_slice())
+                    } else {
+                        return Err(Box::new(XorError::InvalidArgument("key should be string")))
                     }
                 } else {
                     return Err(Box::new(XorError::InvalidArgument("key set twice")))
                 }
             }
         }
-        let state = State { key };
-        Ok(NonNull::from(state.box_and_leak()).cast())
+        Ok(Box::new(Component { key }))
     }
 
     fn functions(&self) -> &'static [&'static str] {
         &["xor"]
     }
 
-    fn spawn(&self, node_state: *const ()) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
-        let _state: &State = unsafe { &*node_state.cast() };
-        todo!()
-    }
 }
 
 
-pub fn init() -> &'static dyn api::Component {
+pub fn init() -> &'static dyn api::ComponentSpec {
     println!("Hello, world from xor");
-    &Component {}
+    &Spec {}
 }

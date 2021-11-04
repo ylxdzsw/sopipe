@@ -15,11 +15,12 @@ anyhow = "1.0"
 api = { path = "api" }
 
 socks5 = { path = "components/socks5", optional = true }
+stdio = { path = "components/stdio", optional = true }
 tcp = { path = "components/tcp", optional = true }
 xor = { path = "components/xor", optional = true }
 
 [features]
-core = ["tcp"]
+core = ["tcp", "stdio"]
 default = ["core", "xor"]
 
 [workspace]
