@@ -17,7 +17,6 @@ impl api::ComponentSpec for Spec {
     fn create(&self, arguments: Vec<api::Argument>) -> Result<Box<dyn api::Component>, Box<dyn Error + Send + Sync>> {
         #[derive(Debug, Deserialize)]
         struct Config<'a> {
-            pos: Option<i8>,
             key: &'a str,
             direction: &'a str,
             outputs: Vec<String>,

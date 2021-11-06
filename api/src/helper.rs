@@ -41,7 +41,7 @@ pub struct Deserializer<'de> {
     args: &'de [Argument],
     ident: bool, // should reading ident next
     pos_fields: Option<Vec<&'static str>>, // the name of positional arguments in *reverse order*, which are the fields that not appear in the arguments
-    list_pos: Option<usize> // the position of the next value in a parsing list
+    list_pos: Option<usize> // the position of the next value in a parsing list. TODO: serde has a method `into_deserializer` that maybe used here
 }
 
 impl<'de> Deserializer<'de> {
@@ -234,7 +234,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     fn deserialize_enum<V: Visitor<'de>>(self, _name: &'static str, _variants: &'static [&'static str], _visitor: V) -> Result<V::Value, ArgParseError> {
-        unimplemented!()
+        todo!()
     }
 
     fn deserialize_identifier<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, ArgParseError> {
