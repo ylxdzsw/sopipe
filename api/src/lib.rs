@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, error::Error};
 pub use async_trait::async_trait; // expose to components
 
+pub mod helper; // helper lib for components
+
 #[derive(Debug, Clone)]
 pub struct Argument(pub String, pub ArgumentValue);
 
@@ -8,7 +10,8 @@ pub struct Argument(pub String, pub ArgumentValue);
 pub enum ArgumentValue {
     String(String),
     Int(u64),
-    Vec(Vec<ArgumentValue>)
+    Vec(Vec<ArgumentValue>),
+    None
 }
 
 impl From<String> for ArgumentValue {
@@ -30,6 +33,15 @@ impl<T> FromIterator<T> for ArgumentValue where ArgumentValue: std::convert::Fro
 }
 
 impl ArgumentValue {
+    pub fn type_name(&self) -> &'static str {
+        match &self {
+            ArgumentValue::String(_) => "string",
+            ArgumentValue::Int(_) => "int",
+            ArgumentValue::Vec(_) => "vec",
+            ArgumentValue::None => "none",
+        }
+    }
+
     pub fn as_string(&self) -> Option<&String> {
         match &self {
             &ArgumentValue::String(x) => Some(x),
@@ -49,6 +61,10 @@ impl ArgumentValue {
             &ArgumentValue::Vec(x) => Some(x),
             _ => None
         }
+    }
+
+    pub fn is_none(&self) -> bool {
+        matches!(self, &ArgumentValue::None)
     }
 }
 

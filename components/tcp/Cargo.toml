@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 api = { path = "../../api" }
-thiserror = "1.0"
+anyhow = "1.0"

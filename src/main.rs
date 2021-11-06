@@ -33,7 +33,7 @@ fn main() -> Result<!> {
 
 
     // let nodes: &_ = script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap().leak();
-    let nodes: &_ = script::load_script(r#"stdin => stdout"#, &components).unwrap().leak();
+    let nodes: &_ = script::load_script(r#"stdin => xor(key="shit", 12345) => stdout"#, &components).unwrap().leak();
 
     let runtime = runtime::Runtime::new(nodes).box_and_leak();
 

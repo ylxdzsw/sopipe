@@ -1,5 +1,4 @@
 use std::{collections::BTreeMap, error::Error};
-use thiserror::Error;
 
 struct Spec {
 
@@ -41,11 +40,6 @@ impl api::Actor for BackwardActor {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum TcpError {
-    #[error("Invalid arguments. Detail: {0}")]
-    InvalidArgument(&'static str),
-}
 
 impl api::ComponentSpec for Spec {
     fn create(&self, arguments: Vec<api::Argument>) -> Result<Box<dyn api::Component>, Box<dyn Error + Send + Sync>> {

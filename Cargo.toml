@@ -5,13 +5,14 @@ edition = "2021"
 
 [dependencies]
 oh-my-rust = { git = "https://github.com/ylxdzsw/oh-my-rust" }
-tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "io-util", "io-std", "net", "time", "process", "sync", "signal", "fs"] }
+tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "sync", "signal"] }
 # futures = "0.3"
 pest = "2.0"
 pest_derive = "2.0"
 smallvec = "1.7"
 # ahash = "0.7"
 anyhow = "1.0"
+
 api = { path = "api" }
 
 socks5 = { path = "components/socks5", optional = true }
@@ -20,7 +21,7 @@ tcp = { path = "components/tcp", optional = true }
 xor = { path = "components/xor", optional = true }
 
 [features]
-core = ["tcp", "stdio"]
-default = ["core", "xor"]
+core = ["tcp", "stdio"] # core includes endpoints components. A core-only build is a socat clone without middlewares. It serves as the basis for a "slim" build.
+default = ["core", "xor"] # default includes most common components. We select components such that a default build can be statically linked and <= 4MB after stripping.
 
 [workspace]

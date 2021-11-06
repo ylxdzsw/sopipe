@@ -1,12 +1,11 @@
+use oh_my_rust::*;
 use std::collections::BTreeMap;
 use std::cell::RefCell;
 use anyhow::{Result, anyhow};
+use pest::Parser;
 use pest::iterators::Pair;
 
-use super::*;
 use api::*;
-
-use pest::Parser;
 
 #[derive(pest_derive::Parser)]
 #[grammar = "script.pest"]
@@ -27,7 +26,7 @@ impl Node {
 }
 
 #[derive(Clone)]
-struct CNode(usize, usize);
+struct CNode(usize, usize); // CNode stands for "composited node", which includes a forward node and a backward node.
 
 /// load a script, build the DAG, initialize the nodes:
 pub(crate) fn load_script(code: &str, specs: &[&'static dyn ComponentSpec]) -> Result<Vec<super::Node>> {
@@ -56,7 +55,7 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn ComponentSpec]) -> R
         let first = pairs.next().unwrap();
         match first.as_rule() {
             Rule::lit => Argument("".to_string(), get_lit_value(first)),
-            Rule::ident => Argument(first.to_string(), get_lit_value(pairs.next().unwrap())),
+            Rule::ident => Argument(first.as_str().to_string(), get_lit_value(pairs.next().unwrap())),
             _ => unreachable!()
         }
     }
