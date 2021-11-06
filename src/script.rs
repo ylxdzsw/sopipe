@@ -55,7 +55,7 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn ComponentSpec]) -> R
         let first = pairs.next().unwrap();
         match first.as_rule() {
             Rule::lit => Argument("".to_string(), get_lit_value(first)),
-            Rule::ident => Argument(first.as_str().to_string(), get_lit_value(pairs.next().unwrap())),
+            Rule::ident => Argument(first.as_str().to_string(), pairs.next().map(get_lit_value).unwrap_or(ArgumentValue::None)),
             _ => unreachable!()
         }
     }

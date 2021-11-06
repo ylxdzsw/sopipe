@@ -11,7 +11,7 @@ ident_char = _{ 'a'..'z' | 'A'..'Z' | '0'..'9' | "_" }
 
 lit = { string | int }
 
-arg = { lit | ( ident ~ "=" ~ lit )  }
+arg = { lit | ( ident ~ ("=" ~ lit)? )  }
 
 args = { arg ~ ("," ~ arg)* }
 

@@ -22,6 +22,8 @@ impl api::ComponentSpec for Spec {
             direction: &'a str,
             outputs: Vec<String>,
             function_name: &'a str,
+            #[serde(default)]
+            read_only: bool,
         }
 
         let config: Config = api::helper::parse_args(&arguments).unwrap();

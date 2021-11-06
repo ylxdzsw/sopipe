@@ -31,9 +31,13 @@ fn main() -> Result<!> {
     #[cfg(feature="tcp")]
     components.push(tcp::init());
 
+    let args: Vec<_> = std::env::args().collect();
+    if args.len() != 2 {
+        println!("Usage: sopipe <script>");
+        std::process::exit(0);
+    }
 
-    // let nodes: &_ = script::load_script(r#"tcp(2222) => xor("fuck") => xor()"#, &components).unwrap().leak();
-    let nodes: &_ = script::load_script(r#"stdin => xor(key="shit", 12345) => stdout"#, &components).unwrap().leak();
+    let nodes: &_ = script::load_script(&args[1], &components).unwrap().leak();
 
     let runtime = runtime::Runtime::new(nodes).box_and_leak();
 
@@ -53,6 +57,6 @@ fn main() -> Result<!> {
         }
     });
 
-    unreachable!();
+    unreachable!(); // TODO: add a global graceful exit flag in Runtime
 }
 
