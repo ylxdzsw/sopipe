@@ -69,12 +69,12 @@ impl ArgumentValue {
 }
 
 #[async_trait]
-pub trait Address: Send {
+pub trait Address: Sync + Send {
     async fn send(&self, msg: Box<[u8]>);
 }
 
 #[async_trait]
-pub trait Runtime: Send {
+pub trait Runtime: Sync + Send {
     /// get a buffer
     async fn read(&mut self) -> Option<Box<[u8]>>;
 
@@ -95,20 +95,20 @@ pub trait Actor: Send {
 
 pub trait Component: Sync {
     /// spawn an actor
-    fn spawn(&self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
+    fn spawn(&'static self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
 }
 
 /// ComponentSpec is a factory of conponents
 pub trait ComponentSpec: Sync {
     /// get the name of functions this component registers
-    fn functions(&self) -> &'static [&'static str];
+    fn functions(&'static self) -> &'static [&'static str];
 
     /// create an instance for a node in the pipeline.
     /// the arguments includes user-provided arguments as well as the following:
     /// function_name (String): the name of function in the user script
     /// direction (String): "forward" or "backward"
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
-    fn create(&self, arguments: Vec<Argument>) -> Result<Box<dyn Component>, Box<dyn Error + Send + Sync>>;
+    fn create(&'static self, arguments: Vec<Argument>) -> Result<Box<dyn Component>, Box<dyn Error + Send + Sync>>;
 }
 
 

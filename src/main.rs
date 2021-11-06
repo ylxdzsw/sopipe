@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 use oh_my_rust::*;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 mod script;
 mod runtime;
