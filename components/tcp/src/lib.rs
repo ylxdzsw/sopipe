@@ -7,17 +7,7 @@ struct Spec {
 struct Forward(u16);
 
 impl api::Component for Forward {
-    fn spawn(&self, runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
-        todo!()
-    }
-
-}
-
-struct ForwardActor {}
-
-#[api::async_trait]
-impl api::Actor for ForwardActor {
-    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn create(&'static self, runtime: Box<dyn api::Runtime>, metadata: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
         todo!()
     }
 }
@@ -25,17 +15,7 @@ impl api::Actor for ForwardActor {
 struct Backward;
 
 impl api::Component for Backward {
-    fn spawn(&self, runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
-        todo!()
-    }
-
-}
-
-struct BackwardActor {}
-
-#[api::async_trait]
-impl api::Actor for BackwardActor {
-    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn create(&'static self, runtime: Box<dyn api::Runtime>, metadata: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
         todo!()
     }
 }

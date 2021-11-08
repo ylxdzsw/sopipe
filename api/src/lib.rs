@@ -1,9 +1,11 @@
-use std::{collections::BTreeMap, error::Error};
+use std::{collections::BTreeMap, error::Error, future::Future, pin::Pin};
 pub use async_trait::async_trait; // expose to components
 
 pub mod helper; // helper lib for components
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+
+pub type Actor = Box<dyn (FnOnce() -> Pin<Box<dyn Future<Output=Result<()>> + Send>>) + Send>;
 
 #[derive(Debug, Clone)]
 pub struct Argument(pub String, pub ArgumentValue);
@@ -90,14 +92,9 @@ pub trait Runtime: Sync + Send {
     fn is_source(&self) -> bool;
 }
 
-#[async_trait]
-pub trait Actor: Send { // TODO: what about just use FnOnce()? it is essentially just a closure.
-    async fn run(self: Box<Self>, ) -> Result<()>;
-}
-
 pub trait Component: Sync {
-    /// spawn an actor
-    fn spawn(&'static self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>>;
+    /// create an actor
+    fn create(&'static self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Actor>;
 }
 
 /// ComponentSpec is a factory of conponents

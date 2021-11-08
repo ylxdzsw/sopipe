@@ -3,13 +3,6 @@ use serde::Deserialize;
 
 struct Spec;
 
-struct Actor {
-    runtime: Box<dyn api::Runtime>,
-    next: Box<dyn api::Address>,
-    key: Box<[u8]>,
-    count: usize
-}
-
 struct Component {
     key: Box<[u8]>
 }
@@ -38,24 +31,21 @@ impl api::ComponentSpec for Spec {
 }
 
 impl api::Component for Component {
-    fn spawn(&self, runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> api::Result<Box<dyn api::Actor>> {
-        let next = runtime.spawn(0, args);
-        Ok(Box::new(Actor { runtime, next, key: self.key.clone(), count: 0 }))
-    }
-}
+    fn create(&'static self, mut runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
+        Ok(Box::new(move || Box::pin(async move {
+            let mut count = 0;
+            let next = runtime.spawn(0, args);
 
-#[api::async_trait]
-impl api::Actor for Actor {
-    async fn run(mut self: Box<Self>) -> api::Result<()> {
-        while let Some(mut msg) = self.runtime.read().await {
-            for c in &mut msg[..] {
-                *c ^= self.key[self.count];
-                self.count = (self.count + 1) % self.key.len()
+            while let Some(mut msg) = runtime.read().await {
+                for c in &mut msg[..] {
+                    *c ^= self.key[count];
+                    count = (count + 1) % self.key.len()
+                }
+                next.send(msg).await
             }
-            self.next.send(msg).await
-        }
 
-        Ok(())
+            Ok(())
+        })))
     }
 }
 

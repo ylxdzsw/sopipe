@@ -50,7 +50,7 @@ fn main() -> Result<!> {
         let tasks: Vec<_> = nodes.iter().enumerate()
             .filter(|(i, _)| !non_source.contains(i))
             .map(|(_, x)| runtime.spawn(x))
-            .map(|actor| tokio::spawn(actor.run()))
+            .map(|actor| tokio::spawn(actor()))
             .collect();
         for task in tasks {
             task.await.unwrap().unwrap()
