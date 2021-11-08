@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, error::Error};
 
-struct Spec {
+struct Component {
 
 }
 
@@ -10,8 +10,8 @@ struct Backward;
 
 
 
-impl api::ComponentSpec for Spec {
-    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<api::ActorFactory> {
+impl api::Component for Component {
+    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<Box<api::Actor>> {
         todo!()
         // let comp: Box<dyn api::Component> = match &arguments.iter().find(|x| x.0 == "direction").unwrap().1.as_string().unwrap()[..] {
         //     "forward" => {
@@ -32,8 +32,8 @@ impl api::ComponentSpec for Spec {
     }
 }
 
-pub fn init() -> &'static dyn api::ComponentSpec {
-    &Spec {}
+pub fn init() -> &'static dyn api::Component {
+    &Component {}
 }
 
 

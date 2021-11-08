@@ -1,10 +1,9 @@
-use std::{collections::BTreeMap, error::Error};
 use serde::Deserialize;
 
-struct Spec;
+struct Component;
 
-impl api::ComponentSpec for Spec {
-    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<api::ActorFactory> {
+impl api::Component for Component {
+    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<Box<api::Actor>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct Config<'a> {
@@ -21,7 +20,7 @@ impl api::ComponentSpec for Spec {
         let key = &*Box::leak(Box::<[u8]>::from(config.key.as_bytes()));
 
         Ok(Box::new(move |mut runtime, meta| {
-            Ok(Box::new(move || Box::pin(async move {
+            Ok(Box::pin(async move {
                 let mut count = 0;
                 let next = runtime.spawn(0, meta);
 
@@ -34,7 +33,7 @@ impl api::ComponentSpec for Spec {
                 }
 
                 Ok(())
-            })))
+            }))
         }))
     }
 
@@ -43,6 +42,6 @@ impl api::ComponentSpec for Spec {
     }
 }
 
-pub fn init() -> &'static dyn api::ComponentSpec {
-    &Spec {}
+pub fn init() -> &'static dyn api::Component {
+    &Component {}
 }

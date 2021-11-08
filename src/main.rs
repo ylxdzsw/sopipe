@@ -13,7 +13,7 @@ mod runtime;
 
 /// A component with runtime-tracked states
 struct Node {
-    comp: &'static api::ActorFactory,
+    actor: &'static api::Actor,
     outputs: &'static [usize],
     conj: usize
 }
@@ -50,10 +50,9 @@ fn main() -> Result<!> {
         let tasks: Vec<_> = nodes.iter().enumerate()
             .filter(|(i, _)| !non_source.contains(i))
             .map(|(_, x)| runtime.spawn(x))
-            .map(|actor| tokio::spawn(actor()))
             .collect();
         for task in tasks {
-            task.await.unwrap().unwrap()
+            task.await.unwrap()
         }
     });
 

@@ -5,8 +5,7 @@ pub mod helper; // helper lib for components
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
-pub type Actor = Box<dyn (FnOnce() -> Pin<Box<dyn Future<Output=Result<()>> + Send>>) + Send>;
-pub type ActorFactory = Box<dyn (Fn(Box<dyn Runtime>, BTreeMap<String, ArgumentValue>) -> Result<Actor>) + Sync>;
+pub type Actor = dyn (Fn(Box<dyn Runtime>, BTreeMap<String, ArgumentValue>) -> Result<Pin<Box<dyn Future<Output=Result<()>> + Send>>>) + Sync;
 
 #[derive(Debug, Clone)]
 pub struct Argument(pub String, pub ArgumentValue);
@@ -93,8 +92,8 @@ pub trait Runtime: Sync + Send {
     fn is_source(&self) -> bool;
 }
 
-/// ComponentSpec is a factory of conponents
-pub trait ComponentSpec: Sync {
+/// The main trait for components.
+pub trait Component: Sync {
     /// get the name of functions this component registers
     fn functions(&'static self) -> &'static [&'static str];
 
@@ -103,7 +102,7 @@ pub trait ComponentSpec: Sync {
     /// function_name (String): the name of function in the user script
     /// direction (String): "forward" or "backward"
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
-    fn create(&'static self, arguments: Vec<Argument>) -> Result<ActorFactory>;
+    fn create(&'static self, arguments: Vec<Argument>) -> Result<Box<Actor>>;
 }
 
 

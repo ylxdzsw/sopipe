@@ -2,7 +2,7 @@ use std::{collections::BTreeMap};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde::Deserialize;
 
-struct Spec;
+struct Component;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, Debug)]
@@ -13,8 +13,8 @@ struct Config {
     no_flush: bool
 }
 
-impl api::ComponentSpec for Spec {
-    fn create(&self, args: Vec<api::Argument>) -> api::Result<api::ActorFactory> {
+impl api::Component for Component {
+    fn create(&self, args: Vec<api::Argument>) -> api::Result<Box<api::Actor>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct _Config<'a> {
@@ -37,7 +37,7 @@ impl api::ComponentSpec for Spec {
         let config = &*Box::leak(Box::new(Config { func, no_flush: _config.no_flush }));
 
         Ok(Box::new(move |runtime, meta| {
-            Ok(Box::new(move || Box::pin(run(config, runtime, meta))))
+            Ok(Box::pin(run(config, runtime, meta)))
         }))
     }
 
@@ -75,6 +75,6 @@ async fn run(config: &Config, mut runtime: Box<dyn api::Runtime>, meta: BTreeMap
     Ok(())
 }
 
-pub fn init() -> &'static dyn api::ComponentSpec {
-    &Spec {}
+pub fn init() -> &'static dyn api::Component {
+    &Component {}
 }

@@ -13,15 +13,15 @@ struct ScriptParser;
 
 // intermediate graph presentation
 struct Node {
-    spec: &'static dyn ComponentSpec,
+    comp: &'static dyn Component,
     args: Vec<Argument>,
     outputs: Vec<usize>,
     conj: usize,
 }
 
 impl Node {
-    fn new(spec: &'static dyn ComponentSpec, args: Vec<Argument>) -> RefCell<Self> {
-        RefCell::new(Self { spec, args, outputs: Default::default(), conj: Default::default() })
+    fn new(spec: &'static dyn Component, args: Vec<Argument>) -> RefCell<Self> {
+        RefCell::new(Self { comp: spec, args, outputs: Default::default(), conj: Default::default() })
     }
 }
 
@@ -29,8 +29,8 @@ impl Node {
 struct CNode(usize, usize); // CNode stands for "composited node", which includes a forward node and a backward node.
 
 /// load a script, build the DAG, initialize the nodes:
-pub(crate) fn load_script(code: &str, specs: &[&'static dyn ComponentSpec]) -> Result<Vec<super::Node>> {
-    enum SymbolValue { CNode(CNode), Function(&'static dyn ComponentSpec) }
+pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Result<Vec<super::Node>> {
+    enum SymbolValue { CNode(CNode), Function(&'static dyn Component) }
 
     let mut nodes = vec![];
 
@@ -159,9 +159,9 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn ComponentSpec]) -> R
     }
 
     nodes.into_iter().map(|node| {
-        let Node { spec, mut args, outputs, conj } = node.into_inner();
+        let Node { comp: spec, mut args, outputs, conj } = node.into_inner();
         args.push(Argument("outputs".into(), outputs.iter().map(|_| "".to_string()).collect()));
         let comp = spec.create(args).map_err(|e| anyhow!(e))?;
-        Ok(super::Node { comp: Box::leak(Box::new(comp)), outputs: outputs.leak(), conj })
+        Ok(super::Node { actor: Box::leak(comp), outputs: outputs.leak(), conj })
     }).collect()
 }
