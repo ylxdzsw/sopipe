@@ -15,7 +15,7 @@ struct Component {
 }
 
 impl api::ComponentSpec for Spec {
-    fn create(&self, arguments: Vec<api::Argument>) -> Result<Box<dyn api::Component>, Box<dyn Error + Send + Sync>> {
+    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<Box<dyn api::Component>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct Config<'a> {
@@ -38,7 +38,7 @@ impl api::ComponentSpec for Spec {
 }
 
 impl api::Component for Component {
-    fn spawn(&self, runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
+    fn spawn(&self, runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> api::Result<Box<dyn api::Actor>> {
         let next = runtime.spawn(0, args);
         Ok(Box::new(Actor { runtime, next, key: self.key.clone(), count: 0 }))
     }
@@ -46,7 +46,7 @@ impl api::Component for Component {
 
 #[api::async_trait]
 impl api::Actor for Actor {
-    async fn run(mut self: Box<Self>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn run(mut self: Box<Self>) -> api::Result<()> {
         while let Some(mut msg) = self.runtime.read().await {
             for c in &mut msg[..] {
                 *c ^= self.key[self.count];

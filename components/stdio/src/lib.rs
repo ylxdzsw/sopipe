@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, error::Error};
+use std::{collections::BTreeMap};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde::Deserialize;
 
@@ -20,7 +20,7 @@ struct Actor {
 }
 
 impl api::ComponentSpec for Spec {
-    fn create(&self, args: Vec<api::Argument>) -> Result<Box<dyn api::Component>, Box<dyn Error + Send + Sync>> {
+    fn create(&self, args: Vec<api::Argument>) -> api::Result<Box<dyn api::Component>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct Config<'a> {
@@ -48,7 +48,7 @@ impl api::ComponentSpec for Spec {
 }
 
 impl api::Component for Component {
-    fn spawn(&'static self, runtime: Box<dyn api::Runtime>, meta: BTreeMap<String, api::ArgumentValue>) -> Result<Box<dyn api::Actor>, Box<dyn Error + Send + Sync>> {
+    fn spawn(&'static self, runtime: Box<dyn api::Runtime>, meta: BTreeMap<String, api::ArgumentValue>) -> api::Result<Box<dyn api::Actor>> {
         Ok(Box::new(Actor { runtime, comp: self, meta}))
     }
 }
@@ -84,7 +84,7 @@ async fn run(mut actor: Box<Actor>) -> anyhow::Result<()> {
 
 #[api::async_trait]
 impl api::Actor for Actor {
-    async fn run(self: Box<Self>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn run(self: Box<Self>) -> api::Result<()> {
         run(self).await.map_err(|e| e.into())
     }
 }

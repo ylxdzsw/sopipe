@@ -3,6 +3,8 @@ pub use async_trait::async_trait; // expose to components
 
 pub mod helper; // helper lib for components
 
+pub type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+
 #[derive(Debug, Clone)]
 pub struct Argument(pub String, pub ArgumentValue);
 
@@ -89,13 +91,13 @@ pub trait Runtime: Sync + Send {
 }
 
 #[async_trait]
-pub trait Actor: Send {
-    async fn run(self: Box<Self>, ) -> Result<(), Box<dyn Error + Send + Sync>>;
+pub trait Actor: Send { // TODO: what about just use FnOnce()? it is essentially just a closure.
+    async fn run(self: Box<Self>, ) -> Result<()>;
 }
 
 pub trait Component: Sync {
     /// spawn an actor
-    fn spawn(&'static self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>, Box<dyn Error + Send + Sync>>;
+    fn spawn(&'static self, runtime: Box<dyn Runtime>, metadata: BTreeMap<String, ArgumentValue>) -> Result<Box<dyn Actor>>;
 }
 
 /// ComponentSpec is a factory of conponents
@@ -108,7 +110,7 @@ pub trait ComponentSpec: Sync {
     /// function_name (String): the name of function in the user script
     /// direction (String): "forward" or "backward"
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
-    fn create(&'static self, arguments: Vec<Argument>) -> Result<Box<dyn Component>, Box<dyn Error + Send + Sync>>;
+    fn create(&'static self, arguments: Vec<Argument>) -> Result<Box<dyn Component>>;
 }
 
 
