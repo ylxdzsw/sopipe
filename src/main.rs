@@ -1,17 +1,11 @@
-#![feature(new_uninit)]
-#![feature(box_into_pin)]
-#![feature(never_type)]
-
 use std::collections::BTreeSet;
 
 use oh_my_rust::*;
 
-use anyhow::Result;
-
 mod script;
 mod runtime;
 
-/// A component with runtime-tracked states
+/// An actor with runtime-tracked states
 struct Node {
     actor: &'static api::Actor,
     outputs: &'static [usize],
@@ -19,7 +13,7 @@ struct Node {
 }
 
 #[allow(clippy::vec_init_then_push)]
-fn main() -> Result<!> {
+fn main() {
     let mut components = vec![];
 
     #[cfg(feature="stdio")]
@@ -41,7 +35,7 @@ fn main() -> Result<!> {
 
     let runtime = runtime::Runtime::new(nodes).box_and_leak();
 
-    let tokio_rt = tokio::runtime::Runtime::new()?;
+    let tokio_rt = tokio::runtime::Runtime::new().unwrap();
 
     tokio_rt.block_on(async move {
         let non_source: BTreeSet<_> = nodes.iter()
@@ -52,7 +46,7 @@ fn main() -> Result<!> {
             .map(|(_, x)| runtime.spawn(x))
             .collect();
         for task in tasks {
-            task.await.unwrap()
+            task.await.unwrap().unwrap()
         }
     });
 

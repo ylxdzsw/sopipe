@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 
 use super::Node;
 use super::ExtForBoxed;
@@ -26,9 +27,9 @@ impl Runtime {
     }
 
     /// used by main.rs to spawn the initial source actors
-    pub(crate) async fn spawn(&'static self, node: &'static Node) -> api::Result<()> {
+    pub(crate) fn spawn(&'static self, node: &'static Node) -> JoinHandle<api::Result<()>> {
         let handler = RuntimeHandler { runtime: self, node, rx: None }.boxed();
-        tokio::spawn((node.actor)(handler, Default::default()).unwrap()).await?
+        tokio::spawn((node.actor)(handler, Default::default()).unwrap())
     }
 }
 
@@ -42,12 +43,9 @@ struct RuntimeHandler {
 impl RuntimeHandler {
     pub(crate) fn spawn(&self, node: &'static Node, meta: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
         let (tx, rx) = mpsc::channel(4);
-        let handler = RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) };
+        let handler = RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) }.boxed();
 
-        let actor = (node.actor)(Box::new(handler), meta).unwrap();
-        tokio::spawn(async move {
-            actor.await.unwrap();
-        });
+        tokio::spawn((node.actor)(handler, meta).unwrap()); // The error is ignored. What to do here?
         Box::new(Address { tx })
     }
 }
