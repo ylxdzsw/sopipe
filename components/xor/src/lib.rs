@@ -3,12 +3,8 @@ use serde::Deserialize;
 
 struct Spec;
 
-struct Component {
-    key: Box<[u8]>
-}
-
 impl api::ComponentSpec for Spec {
-    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<Box<dyn api::Component>> {
+    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<api::ActorFactory> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct Config<'a> {
@@ -22,30 +18,28 @@ impl api::ComponentSpec for Spec {
 
         let config: Config = api::helper::parse_args(&arguments).unwrap();
 
-        Ok(Box::new(Component { key: Box::from(config.key.as_bytes()) }))
+        let key = &*Box::leak(Box::<[u8]>::from(config.key.as_bytes()));
+
+        Ok(Box::new(move |mut runtime, meta| {
+            Ok(Box::new(move || Box::pin(async move {
+                let mut count = 0;
+                let next = runtime.spawn(0, meta);
+
+                while let Some(mut msg) = runtime.read().await {
+                    for c in &mut msg[..] {
+                        *c ^= key[count];
+                        count = (count + 1) % key.len()
+                    }
+                    next.send(msg).await
+                }
+
+                Ok(())
+            })))
+        }))
     }
 
     fn functions(&self) -> &'static [&'static str] {
         &["xor"]
-    }
-}
-
-impl api::Component for Component {
-    fn create(&'static self, mut runtime: Box<dyn api::Runtime>, args: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
-        Ok(Box::new(move || Box::pin(async move {
-            let mut count = 0;
-            let next = runtime.spawn(0, args);
-
-            while let Some(mut msg) = runtime.read().await {
-                for c in &mut msg[..] {
-                    *c ^= self.key[count];
-                    count = (count + 1) % self.key.len()
-                }
-                next.send(msg).await
-            }
-
-            Ok(())
-        })))
     }
 }
 

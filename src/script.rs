@@ -162,6 +162,6 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn ComponentSpec]) -> R
         let Node { spec, mut args, outputs, conj } = node.into_inner();
         args.push(Argument("outputs".into(), outputs.iter().map(|_| "".to_string()).collect()));
         let comp = spec.create(args).map_err(|e| anyhow!(e))?;
-        Ok(super::Node { comp: Box::leak(comp), outputs: outputs.leak(), conj })
+        Ok(super::Node { comp: Box::leak(Box::new(comp)), outputs: outputs.leak(), conj })
     }).collect()
 }

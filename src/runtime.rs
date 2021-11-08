@@ -27,7 +27,7 @@ impl Runtime {
 
     pub(crate) fn spawn(&'static self, node: &'static Node) -> api::Actor {
         let handler = RuntimeHandler { runtime: self, node, rx: None }.boxed();
-        node.comp.create(handler, Default::default()).unwrap()
+        (node.comp)(handler, Default::default()).unwrap()
     }
 }
 
@@ -43,7 +43,7 @@ impl RuntimeHandler {
         let (tx, rx) = mpsc::channel(4);
         let handler = RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) };
 
-        let actor = node.comp.create(Box::new(handler), meta).unwrap();
+        let actor = (node.comp)(Box::new(handler), meta).unwrap();
         tokio::spawn(async move {
             actor().await.unwrap();
         });

@@ -8,22 +8,16 @@ struct Spec;
 #[derive(Copy, Clone, Debug)]
 enum FuncName { STDIN, STDOUT, STDIO }
 
-struct Component {
+struct Config {
     func: FuncName,
-    no_flush: bool,
+    no_flush: bool
 }
 
-// struct Actor {
-//     runtime: Box<dyn api::Runtime>,
-//     comp: &'static Component,
-//     meta: BTreeMap<String, api::ArgumentValue>
-// }
-
 impl api::ComponentSpec for Spec {
-    fn create(&self, args: Vec<api::Argument>) -> api::Result<Box<dyn api::Component>> {
+    fn create(&self, args: Vec<api::Argument>) -> api::Result<api::ActorFactory> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
-        struct Config<'a> {
+        struct _Config<'a> {
             direction: &'a str,
             outputs: Vec<String>,
             function_name: &'a str,
@@ -31,15 +25,20 @@ impl api::ComponentSpec for Spec {
             no_flush: bool,
         }
 
-        let config: Config = api::helper::parse_args(&args).unwrap();
+        let _config: _Config = api::helper::parse_args(&args).unwrap();
 
-        let func = match config.function_name {
+        let func = match _config.function_name {
             "stdin" => FuncName::STDIN,
             "stdout" => FuncName::STDOUT,
             "stdio" => FuncName::STDIO,
             _ => unreachable!()
         };
-        Ok(Box::new(Component { func, no_flush: config.no_flush }))
+
+        let config = &*Box::leak(Box::new(Config { func, no_flush: _config.no_flush }));
+
+        Ok(Box::new(move |runtime, meta| {
+            Ok(Box::new(move || Box::pin(run(config, runtime, meta))))
+        }))
     }
 
     fn functions(&self) -> &'static [&'static str] {
@@ -47,50 +46,34 @@ impl api::ComponentSpec for Spec {
     }
 }
 
-impl api::Component for Component {
-    fn create(&'static self, runtime: Box<dyn api::Runtime>, meta: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
-        Ok(Box::new(move || Box::pin(self.run(runtime, meta))))
-    }
-}
+async fn run(config: &Config, mut runtime: Box<dyn api::Runtime>, meta: BTreeMap<String, api::ArgumentValue>) -> api::Result<()> {
+    if runtime.is_source() && matches!(config.func, FuncName::STDIN | FuncName::STDIO) {
+        let mut stdin = tokio::io::stdin();
+        let mut buffer = vec![0; 1024].into_boxed_slice();
 
-impl Component {
-    async fn run(&'static self, mut runtime: Box<dyn api::Runtime>, meta: BTreeMap<String, api::ArgumentValue>) -> api::Result<()> {
-        if runtime.is_source() && matches!(self.func, FuncName::STDIN | FuncName::STDIO) {
-            let mut stdin = tokio::io::stdin();
-            let mut buffer = vec![0; 1024].into_boxed_slice();
+        let next = runtime.spawn(0, meta);
 
-            let next = runtime.spawn(0, meta);
-
-            loop {
-                let n = stdin.read(&mut buffer[..]).await?;
-                if n == 0 { // EOF
-                    return Ok(())
-                }
-
-                let fut = next.send(buffer[..n].iter().copied().collect()); // to drop &next before awaiting
-                fut.await;
+        loop {
+            let n = stdin.read(&mut buffer[..]).await?;
+            if n == 0 { // EOF
+                return Ok(())
             }
-        } else if !runtime.is_source() && matches!(self.func, FuncName::STDOUT | FuncName::STDIO) {
-            let mut stdout = tokio::io::stdout();
-            while let Some(packet) = runtime.read().await {
-                stdout.write(&packet).await?;
-                if !self.no_flush {
-                    stdout.flush().await?
-                }
+
+            let fut = next.send(buffer[..n].iter().copied().collect()); // to drop &next before awaiting
+            fut.await;
+        }
+    } else if !runtime.is_source() && matches!(config.func, FuncName::STDOUT | FuncName::STDIO) {
+        let mut stdout = tokio::io::stdout();
+        while let Some(packet) = runtime.read().await {
+            stdout.write(&packet).await?;
+            if !config.no_flush {
+                stdout.flush().await?
             }
         }
-
-        Ok(())
     }
+
+    Ok(())
 }
-
-// #[api::async_trait]
-// impl api::Actor for Actor {
-//     async fn run(self: Box<Self>) -> api::Result<()> {
-//         run(self).await.map_err(|e| e.into())
-//     }
-// }
-
 
 pub fn init() -> &'static dyn api::ComponentSpec {
     &Spec {}

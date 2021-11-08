@@ -6,35 +6,25 @@ struct Spec {
 
 struct Forward(u16);
 
-impl api::Component for Forward {
-    fn create(&'static self, runtime: Box<dyn api::Runtime>, metadata: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
-        todo!()
-    }
-}
-
 struct Backward;
 
-impl api::Component for Backward {
-    fn create(&'static self, runtime: Box<dyn api::Runtime>, metadata: BTreeMap<String, api::ArgumentValue>) -> api::Result<api::Actor> {
-        todo!()
-    }
-}
 
 
 impl api::ComponentSpec for Spec {
-    fn create(&self, arguments: Vec<api::Argument>) -> Result<Box<dyn api::Component>, Box<dyn Error + Send + Sync>> {
-        let comp: Box<dyn api::Component> = match &arguments.iter().find(|x| x.0 == "direction").unwrap().1.as_string().unwrap()[..] {
-            "forward" => {
-                let port = arguments.iter().find(|x| x.0.is_empty() || x.0 == "port").unwrap().1.as_int().unwrap();
-                Box::new(Forward(*port as _))
-            },
-            "backward" => {
-                Box::new(Backward)
-            }
-            _ => unreachable!()
-        };
+    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<api::ActorFactory> {
+        todo!()
+        // let comp: Box<dyn api::Component> = match &arguments.iter().find(|x| x.0 == "direction").unwrap().1.as_string().unwrap()[..] {
+        //     "forward" => {
+        //         let port = arguments.iter().find(|x| x.0.is_empty() || x.0 == "port").unwrap().1.as_int().unwrap();
+        //         Box::new(Forward(*port as _))
+        //     },
+        //     "backward" => {
+        //         Box::new(Backward)
+        //     }
+        //     _ => unreachable!()
+        // };
 
-        Ok(comp)
+        // Ok(comp)
     }
 
     fn functions(&self) -> &'static [&'static str] {

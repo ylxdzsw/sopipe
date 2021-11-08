@@ -13,7 +13,7 @@ mod runtime;
 
 /// A component with runtime-tracked states
 struct Node {
-    comp: &'static dyn api::Component,
+    comp: &'static api::ActorFactory,
     outputs: &'static [usize],
     conj: usize
 }
