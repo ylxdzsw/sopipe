@@ -85,6 +85,9 @@ pub trait Runtime: Sync + Send {
     /// spawn an actor of the i-th output with args about the stream, return its address
     fn spawn(&self, index: usize, metadata: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
 
+    /// spawn another actor of this node with args about the stream, return its address
+    fn spawn_self(&self, metadata: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
+
     /// spawn an actor of the conjugate node with args about the stream, return its address
     fn spawn_conjugate(&self, metadata: BTreeMap<String, ArgumentValue>) -> Box<dyn Address>;
 

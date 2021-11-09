@@ -61,6 +61,10 @@ impl api::Runtime for RuntimeHandler {
         RuntimeHandler::spawn(self, node, metadata)
     }
 
+    fn spawn_self(&self, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+        RuntimeHandler::spawn(self, self.node, metadata)
+    }
+
     fn spawn_conjugate(&self, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
         let node = &self.runtime.nodes[self.node.conj];
         RuntimeHandler::spawn(self, node, metadata)
