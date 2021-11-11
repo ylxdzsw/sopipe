@@ -3,7 +3,7 @@ use serde::Deserialize;
 struct Component;
 
 impl api::Component for Component {
-    fn create(&self, arguments: Vec<api::Argument>) -> api::Result<Box<api::Actor>> {
+    fn create(&self, arguments: Vec<(String, api::Argument)>) -> api::Result<Box<api::Actor>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct Config<'a> {

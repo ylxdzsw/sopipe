@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use oh_my_rust::*;
-
 mod script;
 mod runtime;
 
@@ -33,7 +31,7 @@ fn main() {
 
     let nodes: &_ = script::load_script(&args[1], &components).unwrap().leak();
 
-    let runtime = runtime::Runtime::new(nodes).box_and_leak();
+    let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes)));
 
     let tokio_rt = tokio::runtime::Runtime::new().unwrap();
 

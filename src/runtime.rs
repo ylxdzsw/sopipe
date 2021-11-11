@@ -1,10 +1,7 @@
-use std::collections::BTreeMap;
-
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
 use super::Node;
-use super::ExtForBoxed;
 
 struct Address {
     tx: mpsc::Sender<Box<[u8]>>
@@ -28,7 +25,7 @@ impl Runtime {
 
     /// used by main.rs to spawn the initial source actors
     pub(crate) fn spawn(&'static self, node: &'static Node) -> JoinHandle<api::Result<()>> {
-        let handler = RuntimeHandler { runtime: self, node, rx: None }.boxed();
+        let handler = Box::new(RuntimeHandler { runtime: self, node, rx: None });
         tokio::spawn((node.actor)(handler, Default::default()).unwrap())
     }
 }
@@ -41,9 +38,9 @@ struct RuntimeHandler {
 }
 
 impl RuntimeHandler {
-    pub(crate) fn spawn(&self, node: &'static Node, meta: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+    pub(crate) fn spawn(&self, node: &'static Node, meta: api::MetaData) -> Box<dyn api::Address> {
         let (tx, rx) = mpsc::channel(4);
-        let handler = RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) }.boxed();
+        let handler = Box::new(RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) });
 
         tokio::spawn((node.actor)(handler, meta).unwrap()); // The error is ignored. What to do here?
         Box::new(Address { tx })
@@ -56,16 +53,16 @@ impl api::Runtime for RuntimeHandler {
         self.rx.as_mut()?.recv().await
     }
 
-    fn spawn(&self, index: usize, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+    fn spawn(&self, index: usize, metadata: api::MetaData) -> Box<dyn api::Address> {
         let node = &self.runtime.nodes[self.node.outputs[index]];
         RuntimeHandler::spawn(self, node, metadata)
     }
 
-    fn spawn_self(&self, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+    fn spawn_self(&self, metadata: api::MetaData) -> Box<dyn api::Address> {
         RuntimeHandler::spawn(self, self.node, metadata)
     }
 
-    fn spawn_conjugate(&self, metadata: BTreeMap<String, api::ArgumentValue>) -> Box<dyn api::Address> {
+    fn spawn_conjugate(&self, metadata: api::MetaData) -> Box<dyn api::Address> {
         let node = &self.runtime.nodes[self.node.conj];
         RuntimeHandler::spawn(self, node, metadata)
     }

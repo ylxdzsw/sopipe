@@ -1,4 +1,3 @@
-use std::{collections::BTreeMap};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use serde::Deserialize;
 
@@ -14,7 +13,7 @@ struct Config {
 }
 
 impl api::Component for Component {
-    fn create(&self, args: Vec<api::Argument>) -> api::Result<Box<api::Actor>> {
+    fn create(&self, args: Vec<(String, api::Argument)>) -> api::Result<Box<api::Actor>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         struct _Config<'a> {
@@ -46,7 +45,7 @@ impl api::Component for Component {
     }
 }
 
-async fn run(config: &Config, mut runtime: Box<dyn api::Runtime>, meta: BTreeMap<String, api::ArgumentValue>) -> api::Result<()> {
+async fn run(config: &Config, mut runtime: Box<dyn api::Runtime>, meta: api::MetaData) -> api::Result<()> {
     if runtime.is_source() && matches!(config.func, FuncName::STDIN | FuncName::STDIO) {
         let mut stdin = tokio::io::stdin();
         let mut buffer = vec![0; 1024].into_boxed_slice();

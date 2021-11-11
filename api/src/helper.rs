@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use super::{Argument, ArgumentValue};
+use super::Argument;
 
 use thiserror::Error;
 
@@ -38,14 +38,14 @@ impl serde::de::Error for ArgParseError {
 }
 
 pub struct Deserializer<'de> {
-    args: &'de [Argument],
+    args: &'de [(String, Argument)],
     ident: bool, // should reading ident next
     pos_fields: Option<Vec<&'static str>>, // the name of positional arguments in *reverse order*, which are the fields that not appear in the arguments
     list_pos: Option<usize> // the position of the next value in a parsing list. TODO: serde has a method `into_deserializer` that maybe used here
 }
 
 impl<'de> Deserializer<'de> {
-    fn from_args(args: &'de [Argument]) -> Self {
+    fn from_args(args: &'de [(String, Argument)]) -> Self {
         Deserializer { args, ident: true, pos_fields: None, list_pos: None }
     }
 
@@ -57,7 +57,7 @@ impl<'de> Deserializer<'de> {
         &self.args[0].0
     }
 
-    fn next_value(&mut self) -> &'de ArgumentValue {
+    fn next_value(&mut self) -> &'de Argument {
         assert!(!self.ident);
 
         if let Some(list_pos) = &mut self.list_pos {
@@ -73,7 +73,7 @@ impl<'de> Deserializer<'de> {
         value
     }
 
-    fn peek_next_value(&self) -> &'de ArgumentValue {
+    fn peek_next_value(&self) -> &'de Argument {
         assert!(!self.ident);
 
         if let Some(list_pos) = &self.list_pos {
@@ -85,7 +85,7 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-pub fn parse_args<'a, T: Deserialize<'a>>(args: &'a [Argument]) -> Result<T, ArgParseError> {
+pub fn parse_args<'a, T: Deserialize<'a>>(args: &'a [(String, Argument)]) -> Result<T, ArgParseError> {
     let mut deserializer = Deserializer::from_args(args);
     let t = T::deserialize(&mut deserializer)?;
     assert!(deserializer.args.is_empty());
@@ -97,10 +97,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
     fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, ArgParseError> {
         match self.peek_next_value() {
-            ArgumentValue::String(_) => self.deserialize_str(visitor),
-            ArgumentValue::Int(_) => self.deserialize_u64(visitor),
-            ArgumentValue::Vec(_) => self.deserialize_seq(visitor),
-            ArgumentValue::None => self.deserialize_unit(visitor),
+            Argument::String(_) => self.deserialize_str(visitor),
+            Argument::Int(_) => self.deserialize_u64(visitor),
+            Argument::Vec(_) => self.deserialize_seq(visitor),
+            Argument::None => self.deserialize_unit(visitor),
         }
     }
 
@@ -174,7 +174,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     fn deserialize_option<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, ArgParseError> {
-        if let ArgumentValue::None = self.peek_next_value() {
+        if let Argument::None = self.peek_next_value() {
             return visitor.visit_none()
         }
 

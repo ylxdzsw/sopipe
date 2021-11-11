@@ -1,7 +1,5 @@
-use oh_my_rust::*;
 use std::collections::BTreeMap;
 use std::cell::RefCell;
-use anyhow::{Result, anyhow};
 use pest::Parser;
 use pest::iterators::Pair;
 
@@ -14,13 +12,13 @@ struct ScriptParser;
 // intermediate graph presentation
 struct Node {
     comp: &'static dyn Component,
-    args: Vec<Argument>,
+    args: Vec<(String, Argument)>,
     outputs: Vec<usize>,
     conj: usize,
 }
 
 impl Node {
-    fn new(spec: &'static dyn Component, args: Vec<Argument>) -> RefCell<Self> {
+    fn new(spec: &'static dyn Component, args: Vec<(String, Argument)>) -> RefCell<Self> {
         RefCell::new(Self { comp: spec, args, outputs: Default::default(), conj: Default::default() })
     }
 }
@@ -41,26 +39,26 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
         }
     }
 
-    fn get_lit_value(pair: Pair<Rule>) -> ArgumentValue {
+    fn get_lit_value(pair: Pair<Rule>) -> Argument {
         let pair = pair.into_inner().next().unwrap();
         match pair.as_rule() {
-            Rule::string => ArgumentValue::String(pair.as_str().to_string()), // TODO: escaping!
-            Rule::int => ArgumentValue::Int(pair.as_str().parse().unwrap()),
+            Rule::string => Argument::String(pair.as_str().to_string()), // TODO: escaping!
+            Rule::int => Argument::Int(pair.as_str().parse().unwrap()),
             _ => unreachable!()
         }
     }
 
-    fn parse_arg(pair: Pair<Rule>) -> Argument {
+    fn parse_arg(pair: Pair<Rule>) -> (String, Argument) {
         let mut pairs = pair.into_inner();
         let first = pairs.next().unwrap();
         match first.as_rule() {
-            Rule::lit => Argument("".to_string(), get_lit_value(first)),
-            Rule::ident => Argument(first.as_str().to_string(), pairs.next().map(get_lit_value).unwrap_or(ArgumentValue::None)),
+            Rule::lit => ("".to_string(), get_lit_value(first)),
+            Rule::ident => (first.as_str().to_string(), pairs.next().map(get_lit_value).unwrap_or(Argument::None)),
             _ => unreachable!()
         }
     }
 
-    fn parse_node(pair: Pair<Rule>) -> (String, Vec<Argument>) {
+    fn parse_node(pair: Pair<Rule>) -> (String, Vec<(String, Argument)>) {
         assert_eq!(pair.as_rule(), Rule::node);
         let mut pairs = pair.into_inner();
         let ident = pairs.next().unwrap().as_str().to_string();
@@ -79,8 +77,8 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
                         let (ident, mut args) = parse_node(pair);
                         if let SymbolValue::Function(spec) = &symbol_table[&ident] {
                             *index = nodes.len();
-                            args.push(Argument("function_name".into(), ident.into()));
-                            args.push(Argument("direction".into(), direction.to_string().into()));
+                            args.push(("function_name".into(), ident.into()));
+                            args.push(("direction".into(), direction.to_string().into()));
                             nodes.push(Node::new(*spec, args));
                         } else {
                             panic!("the double bang (!!) composition can only be used to combine two function calls.")
@@ -93,15 +91,15 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
                     let (ident, mut args) = parse_node(first);
                     match &symbol_table[&ident] {
                         SymbolValue::Function(spec) => {
-                            args.push(Argument("function_name".into(), ident.into()));
+                            args.push(("function_name".into(), ident.into()));
 
                             let forward_node_index = nodes.len();
                             let mut forward_args = args.clone();
-                            forward_args.push(Argument("direction".into(), "forward".to_string().into()));
+                            forward_args.push(("direction".into(), "forward".to_string().into()));
                             nodes.push(Node::new(*spec, forward_args));
 
                             let backward_node_index = nodes.len();
-                            args.push(Argument("direction".into(), "backward".to_string().into()));
+                            args.push(("direction".into(), "backward".to_string().into()));
                             nodes.push(Node::new(*spec, args));
 
                             nodes[forward_node_index].borrow_mut().conj = backward_node_index;
@@ -137,7 +135,7 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
                 let pair = pair.into_inner().next().unwrap();
                 match pair.as_rule() {
                     Rule::assignment => walk(symbol_table, nodes, pair),
-                    Rule::pipe => eval(symbol_table, nodes, pair).ignore(),
+                    Rule::pipe => { eval(symbol_table, nodes, pair); },
                     _ => unreachable!()
                 }
             },
@@ -160,8 +158,8 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
 
     nodes.into_iter().map(|node| {
         let Node { comp: spec, mut args, outputs, conj } = node.into_inner();
-        args.push(Argument("outputs".into(), outputs.iter().map(|_| "".to_string()).collect()));
-        let comp = spec.create(args).map_err(|e| anyhow!(e))?;
+        args.push(("outputs".into(), outputs.iter().map(|_| "".to_string()).collect()));
+        let comp = spec.create(args)?;
         Ok(super::Node { actor: Box::leak(comp), outputs: outputs.leak(), conj })
     }).collect()
 }
