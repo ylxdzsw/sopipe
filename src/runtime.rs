@@ -1,18 +1,6 @@
-use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
+use api::tokio::sync::mpsc;
 
 use super::Node;
-
-struct Address {
-    tx: mpsc::Sender<Box<[u8]>>
-}
-
-#[api::async_trait]
-impl api::Address for Address {
-    async fn send(&self, msg: Box<[u8]>) {
-        self.tx.send(msg).await.unwrap()
-    }
-}
 
 pub struct Runtime {
     nodes: &'static [Node]
@@ -23,10 +11,9 @@ impl Runtime {
         Self { nodes }
     }
 
-    /// used by main.rs to spawn the initial source actors
-    pub(crate) fn spawn(&'static self, node: &'static Node) -> JoinHandle<api::Result<()>> {
-        let handler = Box::new(RuntimeHandler { runtime: self, node, rx: None });
-        tokio::spawn((node.actor)(handler, Default::default()).unwrap())
+    pub(crate) fn spawn(&'static self, node: &'static Node) {
+        let handler = Box::new(RuntimeHandler { runtime: self, node, is_composite: false });
+        node.forward_actor.spawn_source(handler)
     }
 }
 
@@ -34,40 +21,33 @@ impl Runtime {
 struct RuntimeHandler {
     runtime: &'static Runtime,
     node: &'static Node,
-    rx: Option<mpsc::Receiver<Box<[u8]>>>, // is there a way to construct a closed Receiver?
+    is_composite: bool, // composite nodes are not allowed to spawn next
 }
 
-impl RuntimeHandler {
-    pub(crate) fn spawn(&self, node: &'static Node, meta: api::MetaData) -> Box<dyn api::Address> {
-        let (tx, rx) = mpsc::channel(4);
-        let handler = Box::new(RuntimeHandler { runtime: self.runtime, node, rx: Some(rx) });
-
-        tokio::spawn((node.actor)(handler, meta).unwrap()); // The error is ignored. What to do here?
-        Box::new(Address { tx })
-    }
-}
-
-#[api::async_trait]
 impl api::Runtime for RuntimeHandler {
-    async fn read(&mut self) -> Option<Box<[u8]>> {
-        self.rx.as_mut()?.recv().await
-    }
+    fn spawn_next(&self, index: usize, metadata: api::MetaData, address: Option<api::Address>, mailbox: Option<api::Mailbox>) {
+        if self.is_composite {
+            panic!("cannot spawn in composite components")
+        }
 
-    fn spawn(&self, index: usize, metadata: api::MetaData) -> Box<dyn api::Address> {
-        let node = &self.runtime.nodes[self.node.outputs[index]];
-        RuntimeHandler::spawn(self, node, metadata)
-    }
+        let next = &self.runtime.nodes[index];
 
-    fn spawn_self(&self, metadata: api::MetaData) -> Box<dyn api::Address> {
-        RuntimeHandler::spawn(self, self.node, metadata)
-    }
+        #[allow(clippy::ptr_eq)]
+        if next.forward_actor as *const _ as *const u8 == next.backward_actor as *const _ as *const u8 {
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false });
+            next.forward_actor.spawn(handler, metadata, address, mailbox)
+        } else {
+            let (forward_address_next, forward_mailbox_next) = mpsc::channel(4);
+            let (backward_address_next, backward_mailbox_next) = mpsc::channel(4);
 
-    fn spawn_conjugate(&self, metadata: api::MetaData) -> Box<dyn api::Address> {
-        let node = &self.runtime.nodes[self.node.conj];
-        RuntimeHandler::spawn(self, node, metadata)
-    }
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true });
+            next.forward_actor.spawn_composite(handler, metadata.clone(), Some(forward_address_next), mailbox);
 
-    fn is_source(&self) -> bool {
-        self.rx.is_none()
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true });
+            next.backward_actor.spawn_composite(handler, metadata.clone(), address, Some(backward_mailbox_next));
+
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false });
+            handler.spawn_next(0, metadata, Some(backward_address_next), Some(forward_mailbox_next))
+        }
     }
 }

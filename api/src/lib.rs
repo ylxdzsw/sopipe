@@ -1,11 +1,13 @@
 use std::{any::Any, collections::BTreeMap, error::Error, future::Future, pin::Pin, sync::Arc};
 pub use async_trait::async_trait; // expose to components
-
+pub use tokio; // expose to components
 pub mod helper; // helper lib for components
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
-pub type Actor = dyn (Fn(Box<dyn Runtime>, MetaData) -> Result<Pin<Box<dyn Future<Output=Result<()>> + Send>>>) + Sync;
+pub type Address = tokio::sync::mpsc::Sender<Box<[u8]>>;
+pub type Mailbox = tokio::sync::mpsc::Receiver<Box<[u8]>>;
 
+/// An enum type that represents user arguments
 #[derive(Debug, Clone)]
 pub enum Argument {
     String(String),
@@ -68,33 +70,19 @@ impl Argument {
     }
 }
 
-#[async_trait]
-pub trait Address: Sync + Send {
-    async fn send(&self, msg: Box<[u8]>);
-}
-
-#[async_trait]
+/// A trait that provides runtime functions to components. It is tied to each actor.
 pub trait Runtime: Sync + Send {
-    /// get a buffer
-    async fn read(&mut self) -> Option<Box<[u8]>>;
-
-    /// spawn an actor of the i-th output with args about the stream, return its address
-    fn spawn(&self, index: usize, metadata: MetaData) -> Box<dyn Address>;
-
-    /// spawn another actor of this node with args about the stream, return its address
-    fn spawn_self(&self, metadata: MetaData) -> Box<dyn Address>;
-
-    /// spawn an actor of the conjugate node with args about the stream, return its address
-    fn spawn_conjugate(&self, metadata: MetaData) -> Box<dyn Address>;
-
-    /// indicate if this actor is a source node (no input)
-    fn is_source(&self) -> bool;
+    /// spawn an actor of the i-th output
+    /// metadata provides information about this stream
+    /// address allows the output to send responses back
+    /// mailbox allows the output to read the message
+    fn spawn_next(&self, index: usize, metadata: MetaData, address: Option<Address>, mailbox: Option<Mailbox>);
 }
 
 /// Meta data dict.
 /// Cloning a MetaData will be "shallow". However, the values in MetaData are immutable unless it has interior mutability.
 #[derive(Default, Debug, Clone)]
-pub struct MetaData(BTreeMap<String, Arc<Box<dyn Any + Send + Sync>>>); // TODO: make this also a trait object?. How to have a generic method in trait objects?
+pub struct MetaData(BTreeMap<String, Arc<Box<dyn Any + Send + Sync>>>);
 
 impl MetaData {
     /// Get a value in the meta data. Return None if the key does not exist or the type mismatches.
@@ -114,6 +102,17 @@ impl MetaData {
     }
 }
 
+pub trait Actor: Sync {
+    /// spawn an instance of this actor, handling messages in the mailbox and send responses to the address.
+    fn spawn(&'static self, runtime: Box<dyn Runtime>, metadata: MetaData, address: Option<Address>, mailbox: Option<Mailbox>);
+
+    /// spawn an instance of this actor as a part in a composited component. It acts like a one-way pipe that process messages from the mailbox and send to the address.
+    fn spawn_composite(&'static self, runtime: Box<dyn Runtime>, metadata: MetaData, address: Option<Address>, mailbox: Option<Mailbox>);
+
+    /// spawn an instance of this actor as a source node
+    fn spawn_source(&'static self, runtime: Box<dyn Runtime>);
+}
+
 /// The main trait for components.
 pub trait Component: Sync {
     /// get the name of functions this component registers
@@ -124,7 +123,7 @@ pub trait Component: Sync {
     /// function_name (String): the name of function in the user script
     /// direction (String): "forward" or "backward"
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
-    fn create(&'static self, arguments: Vec<(String, Argument)>) -> Result<Box<Actor>>;
+    fn create(&'static self, arguments: Vec<(String, Argument)>) -> Result<Box<dyn Actor>>;
 }
 
 

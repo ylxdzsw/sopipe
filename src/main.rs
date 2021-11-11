@@ -3,11 +3,11 @@ use std::collections::BTreeSet;
 mod script;
 mod runtime;
 
-/// An actor with runtime-tracked states
+/// An (composite) actor with runtime-tracked states
 struct Node {
-    actor: &'static api::Actor,
+    forward_actor: &'static dyn api::Actor,
+    backward_actor: &'static dyn api::Actor,
     outputs: &'static [usize],
-    conj: usize
 }
 
 #[allow(clippy::vec_init_then_push)]
@@ -33,21 +33,21 @@ fn main() {
 
     let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes)));
 
-    let tokio_rt = tokio::runtime::Runtime::new().unwrap();
+    let tokio_rt = api::tokio::runtime::Runtime::new().unwrap();
 
     tokio_rt.block_on(async move {
         let non_source: BTreeSet<_> = nodes.iter()
             .flat_map(|x| x.outputs.iter())
             .copied().collect();
-        let tasks: Vec<_> = nodes.iter().enumerate()
-            .filter(|(i, _)| !non_source.contains(i))
-            .map(|(_, x)| runtime.spawn(x))
-            .collect();
-        for task in tasks {
-            task.await.unwrap().unwrap()
+        for (i, x) in nodes.iter().enumerate() {
+            if non_source.contains(&i) {
+                continue
+            }
+            assert_eq!(x.forward_actor as *const _ as *const u8, x.backward_actor as *const _ as *const u8);
+            runtime.spawn(x)
         }
+        api::tokio::signal::ctrl_c().await.unwrap();
     });
 
-    unreachable!(); // TODO: add a global graceful exit flag in Runtime
 }
 

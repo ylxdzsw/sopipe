@@ -13,29 +13,32 @@ struct ScriptParser;
 struct Node {
     comp: &'static dyn Component,
     args: Vec<(String, Argument)>,
-    outputs: Vec<usize>,
-    conj: usize,
 }
 
 impl Node {
-    fn new(spec: &'static dyn Component, args: Vec<(String, Argument)>) -> RefCell<Self> {
-        RefCell::new(Self { comp: spec, args, outputs: Default::default(), conj: Default::default() })
+    fn build(mut self, outputs: impl IntoIterator<Item=String>) -> api::Result<Box<dyn api::Actor>> {
+        self.args.push(("outputs".into(), outputs.into_iter().collect()));
+        self.comp.create(self.args)
     }
 }
 
-#[derive(Clone)]
-struct CNode(usize, usize); // CNode stands for "composited node", which includes a forward node and a backward node.
+enum CNode {
+    Single { node: Node, outputs: Vec<usize> },
+    Composite { forward: Node, backward: Node, output: Option<usize> },
+}
+
+type CNodeIndex = usize;
 
 /// load a script, build the DAG, initialize the nodes:
-pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Result<Vec<super::Node>> {
-    enum SymbolValue { CNode(CNode), Function(&'static dyn Component) }
+pub(crate) fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<super::Node>> {
+    enum SymbolValue { CNode(CNodeIndex), Function(&'static dyn Component) }
 
-    let mut nodes = vec![];
+    let mut cnodes = vec![];
 
     let mut symbol_table: BTreeMap<String, SymbolValue> = BTreeMap::new();
-    for &spec in specs {
-        for fname in spec.functions() {
-            symbol_table.insert(fname.to_string(), SymbolValue::Function(spec));
+    for &comp in components {
+        for fname in comp.functions() {
+            symbol_table.insert(fname.to_string(), SymbolValue::Function(comp));
         }
     }
 
@@ -66,45 +69,40 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
         (ident, args)
     }
 
-    fn eval(symbol_table: &mut BTreeMap<String, SymbolValue>, nodes: &mut Vec<RefCell<Node>>, pair: Pair<Rule>) -> CNode {
+    fn eval(symbol_table: &mut BTreeMap<String, SymbolValue>, cnodes: &mut Vec<RefCell<CNode>>, pair: Pair<Rule>) -> CNodeIndex {
         match pair.as_rule() {
             Rule::cnode => {
                 let mut pairs = pair.into_inner();
                 let first = pairs.next().unwrap();
                 if let Some(second) = pairs.next() {
-                    let (mut forward_node_index, mut backward_node_index) = (0, 0);
-                    for ((pair, index), direction) in [first, second].into_iter().zip([&mut forward_node_index, &mut backward_node_index]).zip(["forward", "backward"]) {
+                    fn make_node(pair: Pair<Rule>, symbol_table: &mut BTreeMap<String, SymbolValue>) -> Node {
                         let (ident, mut args) = parse_node(pair);
-                        if let SymbolValue::Function(spec) = &symbol_table[&ident] {
-                            *index = nodes.len();
+                        if let SymbolValue::Function(comp) = &symbol_table[&ident] {
                             args.push(("function_name".into(), ident.into()));
-                            args.push(("direction".into(), direction.to_string().into()));
-                            nodes.push(Node::new(*spec, args));
+                            Node { comp: *comp, args }
                         } else {
                             panic!("the double bang (!!) composition can only be used to combine two function calls.")
                         }
                     }
-                    nodes[forward_node_index].borrow_mut().conj = backward_node_index;
-                    nodes[backward_node_index].borrow_mut().conj = forward_node_index;
-                    CNode(forward_node_index, backward_node_index)
+                    let cnode = RefCell::new(CNode::Composite {
+                        forward: make_node(first, symbol_table),
+                        backward: make_node(second, symbol_table),
+                        output: None
+                    });
+                    let index = cnodes.len();
+                    cnodes.push(cnode);
+                    index
                 } else {
                     let (ident, mut args) = parse_node(first);
                     match &symbol_table[&ident] {
-                        SymbolValue::Function(spec) => {
+                        SymbolValue::Function(comp) => {
                             args.push(("function_name".into(), ident.into()));
-
-                            let forward_node_index = nodes.len();
-                            let mut forward_args = args.clone();
-                            forward_args.push(("direction".into(), "forward".to_string().into()));
-                            nodes.push(Node::new(*spec, forward_args));
-
-                            let backward_node_index = nodes.len();
-                            args.push(("direction".into(), "backward".to_string().into()));
-                            nodes.push(Node::new(*spec, args));
-
-                            nodes[forward_node_index].borrow_mut().conj = backward_node_index;
-                            nodes[backward_node_index].borrow_mut().conj = forward_node_index;
-                            CNode(forward_node_index, backward_node_index)
+                            let index = cnodes.len();
+                            let cnode = RefCell::new(CNode::Single {
+                                node: Node { comp: *comp, args },
+                                outputs: vec![]
+                            });
+                            index
                         }
                         SymbolValue::CNode(cnode) => {
                             cnode.clone()
@@ -113,14 +111,19 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
                 }
             },
             Rule::pipe => {
-                let mut last: Option<CNode> = None;
+                let mut last: Option<CNodeIndex> = None;
                 for pair in pair.into_inner() {
-                    let cnode = eval(symbol_table, nodes, pair);
+                    let cnode_index = eval(symbol_table, cnodes, pair);
                     if let Some(p) = last {
-                        nodes[p.0].borrow_mut().outputs.push(cnode.0);
-                        nodes[cnode.1].borrow_mut().outputs.push(p.1);
+                        match &mut *cnodes[p].borrow_mut() {
+                            CNode::Single { outputs, .. } => outputs.push(cnode_index),
+                            CNode::Composite { output, .. } => {
+                                assert!(output.is_none());
+                                *output = Some(cnode_index)
+                            }
+                        }
                     }
-                    last = Some(cnode)
+                    last = Some(cnode_index)
                 }
                 last.unwrap()
             },
@@ -128,38 +131,47 @@ pub(crate) fn load_script(code: &str, specs: &[&'static dyn Component]) -> Resul
         }
     }
 
-    fn walk(symbol_table: &mut BTreeMap<String, SymbolValue>, nodes: &mut Vec<RefCell<Node>>, pair: Pair<Rule>) {
+    fn walk(symbol_table: &mut BTreeMap<String, SymbolValue>, cnodes: &mut Vec<RefCell<CNode>>, pair: Pair<Rule>) {
         match pair.as_rule() {
             Rule::EOI | Rule::WHITESPACE => {},
             Rule::stmt => {
                 let pair = pair.into_inner().next().unwrap();
                 match pair.as_rule() {
-                    Rule::assignment => walk(symbol_table, nodes, pair),
-                    Rule::pipe => { eval(symbol_table, nodes, pair); },
+                    Rule::assignment => walk(symbol_table, cnodes, pair),
+                    Rule::pipe => { eval(symbol_table, cnodes, pair); },
                     _ => unreachable!()
                 }
             },
             Rule::assignment => {
                 let mut pairs = pair.into_inner();
                 let ident = pairs.next().unwrap().as_str().to_string();
-                let value = eval(symbol_table, nodes, pairs.next().unwrap());
+                let value = eval(symbol_table, cnodes, pairs.next().unwrap());
                 symbol_table.insert(ident, SymbolValue::CNode(value));
             },
             Rule::script => for pair in pair.into_inner() {
-                walk(symbol_table, nodes, pair)
+                walk(symbol_table, cnodes, pair)
             },
             _ => unreachable!()
         }
     }
 
     for pair in ScriptParser::parse(Rule::script, code)? {
-        walk(&mut symbol_table, &mut nodes, pair)
+        walk(&mut symbol_table, &mut cnodes, pair)
     }
 
-    nodes.into_iter().map(|node| {
-        let Node { comp: spec, mut args, outputs, conj } = node.into_inner();
-        args.push(("outputs".into(), outputs.iter().map(|_| "".to_string()).collect()));
-        let comp = spec.create(args)?;
-        Ok(super::Node { actor: Box::leak(comp), outputs: outputs.leak(), conj })
+    cnodes.into_iter().map(|cnode| {
+        match cnode.into_inner() {
+            CNode::Single { node, outputs } => {
+                let output_names: Vec<_> = outputs.iter().map(|_| "".to_string()).collect();
+                let actor = Box::leak(node.build(output_names)?);
+                Ok(super::Node { forward_actor: actor, backward_actor: actor, outputs: outputs.leak() })
+            }
+            CNode::Composite { forward, backward, output } => {
+                let output_names: Vec<_> = output.iter().map(|_| "".to_string()).collect();
+                let forward_actor = Box::leak(forward.build(output_names.clone())?);
+                let backward_actor = Box::leak(backward.build(output_names)?);
+                Ok(super::Node { forward_actor, backward_actor, outputs: output.into_iter().collect::<Vec<_>>().leak() })
+            }
+        }
     }).collect()
 }

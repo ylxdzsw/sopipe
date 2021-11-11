@@ -6,5 +6,4 @@ edition = "2021"
 [dependencies]
 api = { path = "../../api" }
 thiserror = "1.0"
-tokio = { version = "1.12", features = ["net", "sync", "io-util"] }
 serde = { version = "1.0", features = ["derive"] }
