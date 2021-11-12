@@ -9,12 +9,51 @@ enum FuncName { STDIN, STDOUT, STDIO }
 
 struct Actor {
     func: FuncName,
-    no_flush: bool
+    has_output: bool,
+    no_flush: bool,
+    buffer_size: usize,
+}
+
+impl<R: api::Runtime> api::Component<R> for Component {
+    fn create(&self, args: Vec<(String, api::Argument)>) -> api::Result<Box<dyn api::Actor<R>>> {
+        #[allow(dead_code)]
+        #[derive(Debug, Deserialize)]
+        #[serde(crate="api::serde")]
+        struct Config<'a> {
+            direction: &'a str,
+            outputs: Vec<String>,
+            function_name: &'a str,
+            #[serde(default)]
+            no_flush: bool,
+        }
+
+        let config: Config = api::parse_args(&args).unwrap();
+
+        Ok(Box::new(Actor {
+            func: match config.function_name {
+                "stdin" => FuncName::STDIN,
+                "stdout" => FuncName::STDOUT,
+                "stdio" => FuncName::STDIO,
+                _ => unreachable!()
+            },
+            has_output: match config.outputs.len() {
+                0 => false,
+                1 => true,
+                _ => return Err(api::Error::misuse("too many outputs", None))
+            },
+            no_flush: config.no_flush,
+            buffer_size: 1024
+        }))
+    }
+
+    fn functions(&self) -> &'static [&'static str] {
+        &["stdin", "stdout", "stdio"]
+    }
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
     fn spawn(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
-        todo!()
+        let (forward_address, forward_mailbox) = runtime.channel();
     }
 
     fn spawn_composite(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
@@ -26,69 +65,33 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
     }
 }
 
-impl api::Component for Component {
-    fn create(&self, args: Vec<(String, api::Argument)>) -> api::Result<Box<dyn api::Actor>> {
-        #[allow(dead_code)]
-        #[derive(Debug, Deserialize)]
-        #[serde(crate="api::serde")]
-        struct _Config<'a> {
-            direction: &'a str,
-            outputs: Vec<String>,
-            function_name: &'a str,
-            #[serde(default)]
-            no_flush: bool,
-        }
-
-        let _config: _Config = api::helper::parse_args(&args).unwrap();
-
-        let func = match _config.function_name {
-            "stdin" => FuncName::STDIN,
-            "stdout" => FuncName::STDOUT,
-            "stdio" => FuncName::STDIO,
-            _ => unreachable!()
-        };
-
-        let config = &*Box::leak(Box::new(Actor { func, no_flush: _config.no_flush }));
-
-        Ok(Box::new(move |runtime, meta| {
-            Ok(Box::pin(run(config, runtime, meta)))
-        }))
-    }
-
-    fn functions(&self) -> &'static [&'static str] {
-        &["stdin", "stdout", "stdio"]
-    }
-}
-
-async fn run(config: &Actor, mut runtime: Box<dyn api::Runtime>, meta: api::MetaData) -> api::Result<()> {
-    if runtime.is_source() && matches!(config.func, FuncName::STDIN | FuncName::STDIO) {
+impl Actor {
+    async fn read_stdin(&self, mut addr: impl api::Address) -> api::Result<()> {
         let mut stdin = tokio::io::stdin();
-        let mut buffer = vec![0; 1024].into_boxed_slice();
-
-        let next = runtime.spawn(0, meta);
+        let mut buffer = vec![0; self.buffer_size].into_boxed_slice();
 
         loop {
-            let n = stdin.read(&mut buffer[..]).await?;
+            let n = stdin.read(&mut buffer[..]).await.map_err(|e| api::Error::non_fatal("failed reading stdin", Some(Box::new(e))))?;
             if n == 0 { // EOF
                 return Ok(())
             }
 
-            let fut = next.send(buffer[..n].iter().copied().collect()); // to drop &next before awaiting
-            fut.await;
-        }
-    } else if !runtime.is_source() && matches!(config.func, FuncName::STDOUT | FuncName::STDIO) {
-        let mut stdout = tokio::io::stdout();
-        while let Some(packet) = runtime.read().await {
-            stdout.write(&packet).await?;
-            if !config.no_flush {
-                stdout.flush().await?
-            }
+            addr.send(buffer[..n].iter().copied().collect()).await;
         }
     }
 
-    Ok(())
+    async fn write_stdout(&self, mut mail: impl api::Mailbox) -> api::Result<()> {
+        let mut stdout = tokio::io::stdout();
+        while let Some(packet) = mail.recv().await {
+            stdout.write_all(&packet).await.map_err(|e| api::Error::non_fatal("failed writing stdout", Some(Box::new(e))))?;
+            if !self.no_flush {
+                stdout.flush().await.map_err(|e| api::Error::non_fatal("failed flushing stdout", Some(Box::new(e))))?
+            }
+        }
+        Ok(())
+    }
 }
 
-pub fn init() -> &'static dyn api::Component {
+pub fn init<R: api::Runtime>() -> &'static dyn api::Component<R> {
     &Component {}
 }
