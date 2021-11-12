@@ -3,7 +3,10 @@ use std::cell::RefCell;
 use pest::Parser;
 use pest::iterators::Pair;
 
-use api::*;
+use crate::runtime::RuntimeHandler;
+use api::{Component, Actor, Argument};
+
+type R = RuntimeHandler;
 
 #[derive(pest_derive::Parser)]
 #[grammar = "script.pest"]
@@ -12,12 +15,12 @@ struct ScriptParser;
 // intermediate graph presentation
 struct Node {
     // TODO: record the source position of the node so we can print it out in error messages?
-    comp: &'static dyn Component,
+    comp: &'static dyn Component<R>,
     args: Vec<(String, Argument)>,
 }
 
 impl Node {
-    fn build(mut self, outputs: impl IntoIterator<Item=String>) -> api::Result<Box<dyn api::Actor>> {
+    fn build(mut self, outputs: impl IntoIterator<Item=String>) -> Box<dyn Actor<R>> {
         self.args.push(("outputs".into(), outputs.into_iter().collect()));
         self.comp.create(self.args)
     }
@@ -31,8 +34,8 @@ enum CNode {
 type CNodeIndex = usize;
 
 /// load a script, build the DAG, initialize the nodes:
-pub(crate) fn load_script(code: &str, components: &[&'static dyn Component]) -> Result<Vec<super::Node>> {
-    enum SymbolValue { CNode(CNodeIndex), Function(&'static dyn Component) }
+pub(crate) fn load_script(code: &str, components: &[&'static dyn Component<R>]) -> Vec<super::Node> {
+    enum SymbolValue { CNode(CNodeIndex), Function(&'static dyn Component<R>) }
 
     let mut cnodes = vec![];
 
@@ -156,7 +159,7 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component]) -> 
         }
     }
 
-    for pair in ScriptParser::parse(Rule::script, code)? {
+    for pair in ScriptParser::parse(Rule::script, code).unwrap() {
         walk(&mut symbol_table, &mut cnodes, pair)
     }
 
@@ -164,14 +167,14 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component]) -> 
         match cnode.into_inner() {
             CNode::Single { node, outputs } => {
                 let output_names: Vec<_> = outputs.iter().map(|_| "".to_string()).collect();
-                let actor = Box::leak(node.build(output_names)?);
-                Ok(super::Node::new(actor, actor, outputs.leak()))
+                let actor = Box::leak(node.build(output_names));
+                super::Node::new(actor, actor, outputs.leak())
             }
             CNode::Composite { forward, backward, output } => {
                 let output_names: Vec<_> = output.iter().map(|_| "".to_string()).collect();
-                let forward_actor = Box::leak(forward.build(output_names.clone())?);
-                let backward_actor = Box::leak(backward.build(output_names)?);
-                Ok(super::Node::new(forward_actor, backward_actor, output.into_iter().collect::<Vec<_>>().leak()))
+                let forward_actor = Box::leak(forward.build(output_names.clone()));
+                let backward_actor = Box::leak(backward.build(output_names));
+                super::Node::new(forward_actor, backward_actor, output.into_iter().collect::<Vec<_>>().leak())
             }
         }
     }).collect()

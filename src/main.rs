@@ -3,17 +3,19 @@ use std::{collections::BTreeSet, sync::atomic::AtomicU32};
 mod script;
 mod runtime;
 
+type R = runtime::RuntimeHandler;
+
 /// An (composite) actor with runtime-tracked states
 struct Node {
-    forward_actor: &'static dyn api::Actor,
-    backward_actor: &'static dyn api::Actor,
+    forward_actor: &'static dyn api::Actor<R>,
+    backward_actor: &'static dyn api::Actor<R>,
     outputs: &'static [usize],
 
     task_count: AtomicU32
 }
 
 impl Node {
-    fn new(forward_actor: &'static dyn api::Actor, backward_actor: &'static dyn api::Actor, outputs: &'static [usize]) -> Self {
+    fn new(forward_actor: &'static dyn api::Actor<R>, backward_actor: &'static dyn api::Actor<R>, outputs: &'static [usize]) -> Self {
         Self { forward_actor, backward_actor, outputs, task_count: Default::default() }
     }
 }
@@ -37,11 +39,11 @@ fn main() {
         std::process::exit(0);
     }
 
-    let nodes: &_ = script::load_script(&args[1], &components).unwrap().leak();
+    let nodes: &_ = script::load_script(&args[1], &components).leak();
 
     let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes)));
 
-    let tokio_rt = api::tokio::runtime::Runtime::new().unwrap();
+    let tokio_rt = tokio::runtime::Runtime::new().unwrap();
 
     tokio_rt.block_on(async move {
         let non_source: BTreeSet<_> = nodes.iter()
@@ -54,7 +56,7 @@ fn main() {
             assert_eq!(x.forward_actor as *const _ as *const u8, x.backward_actor as *const _ as *const u8);
             runtime.spawn_source(x)
         }
-        api::tokio::signal::ctrl_c().await.unwrap();
+        tokio::signal::ctrl_c().await.unwrap();
     });
 
 }

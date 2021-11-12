@@ -1,5 +1,5 @@
 use api::serde::Deserialize;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{Result, AsyncReadExt, AsyncWriteExt};
 
 struct Component;
 
@@ -15,7 +15,7 @@ struct Actor {
 }
 
 impl<R: api::Runtime> api::Component<R> for Component {
-    fn create(&self, args: Vec<(String, api::Argument)>) -> api::Result<Box<dyn api::Actor<R>>> {
+    fn create(&self, args: Vec<(String, api::Argument)>) -> Box<dyn api::Actor<R>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
         #[serde(crate="api::serde")]
@@ -29,7 +29,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
 
         let config: Config = api::parse_args(&args).unwrap();
 
-        Ok(Box::new(Actor {
+        Box::new(Actor {
             func: match config.function_name {
                 "stdin" => FuncName::STDIN,
                 "stdout" => FuncName::STDOUT,
@@ -39,11 +39,11 @@ impl<R: api::Runtime> api::Component<R> for Component {
             has_output: match config.outputs.len() {
                 0 => false,
                 1 => true,
-                _ => return Err(api::Error::misuse("too many outputs", None))
+                _ => panic!("too many outputs")
             },
             no_flush: config.no_flush,
             buffer_size: 1024
-        }))
+        })
     }
 
     fn functions(&self) -> &'static [&'static str] {
@@ -52,26 +52,48 @@ impl<R: api::Runtime> api::Component<R> for Component {
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
-    fn spawn(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
-        let (forward_address, forward_mailbox) = runtime.channel();
+    fn spawn(&'static self, runtime: Box<R>, _metadata: api::MetaData, _address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        if self.has_output {
+            todo!()
+        }
+
+        if let FuncName::STDIN | FuncName::STDIO = self.func {
+            panic!("sink node can only be stdout")
+        }
+
+        runtime.spawn_task(self.write_stdout(mailbox.expect("no input")));
     }
 
-    fn spawn_composite(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+    fn spawn_composite(&'static self, _runtime: Box<R>, _metadata: api::MetaData, _address: Option<R::Address>, _mailbox: Option<R::Mailbox>) {
         todo!()
     }
 
     fn spawn_source(&'static self, runtime: Box<R>) {
-        todo!()
+        if let FuncName::STDOUT = self.func {
+            panic!("misuse")
+        }
+
+        if self.has_output {
+            let (forward_address, forward_mailbox) = runtime.channel();
+            let (backward_address, backward_mailbox) = runtime.channel();
+            runtime.spawn_next(0, Default::default(), backward_address, forward_mailbox);
+            runtime.spawn_task(self.read_stdin(forward_address));
+            runtime.spawn_task(self.write_stdout(backward_mailbox));
+        } else { // trivial case: direct echo
+            let (address, mailbox) = runtime.channel();
+            runtime.spawn_task(self.read_stdin(address));
+            runtime.spawn_task(self.write_stdout(mailbox));
+        }
     }
 }
 
 impl Actor {
-    async fn read_stdin(&self, mut addr: impl api::Address) -> api::Result<()> {
+    async fn read_stdin(&self, mut addr: impl api::Address) -> Result<()> {
         let mut stdin = tokio::io::stdin();
         let mut buffer = vec![0; self.buffer_size].into_boxed_slice();
 
         loop {
-            let n = stdin.read(&mut buffer[..]).await.map_err(|e| api::Error::non_fatal("failed reading stdin", Some(Box::new(e))))?;
+            let n = stdin.read(&mut buffer[..]).await?;
             if n == 0 { // EOF
                 return Ok(())
             }
@@ -80,12 +102,12 @@ impl Actor {
         }
     }
 
-    async fn write_stdout(&self, mut mail: impl api::Mailbox) -> api::Result<()> {
+    async fn write_stdout(&self, mut mail: impl api::Mailbox) -> Result<()> {
         let mut stdout = tokio::io::stdout();
         while let Some(packet) = mail.recv().await {
-            stdout.write_all(&packet).await.map_err(|e| api::Error::non_fatal("failed writing stdout", Some(Box::new(e))))?;
+            stdout.write_all(&packet).await?;
             if !self.no_flush {
-                stdout.flush().await.map_err(|e| api::Error::non_fatal("failed flushing stdout", Some(Box::new(e))))?
+                stdout.flush().await?
             }
         }
         Ok(())

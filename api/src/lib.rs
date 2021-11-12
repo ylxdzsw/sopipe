@@ -9,9 +9,6 @@ pub use parser::parse_args;
 mod metadata;
 pub use metadata::MetaData;
 
-mod error;
-pub use error::{Error, Result};
-
 mod runtime;
 pub use runtime::{Runtime, Address, Mailbox};
 
@@ -37,7 +34,7 @@ pub trait Component<R: Runtime>: Sync {
     /// function_name (String): the name of function in the user script
     /// direction (String): "forward" or "backward"
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
-    fn create(&'static self, arguments: Vec<(String, Argument)>) -> Result<Box<dyn Actor<R>>>;
+    fn create(&'static self, arguments: Vec<(String, Argument)>) -> Box<dyn Actor<R>>;
 }
 
 
