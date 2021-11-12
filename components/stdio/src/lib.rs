@@ -1,5 +1,4 @@
-use api::tokio;
-use serde::Deserialize;
+use api::serde::Deserialize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 struct Component;
@@ -8,15 +7,30 @@ struct Component;
 #[derive(Copy, Clone, Debug)]
 enum FuncName { STDIN, STDOUT, STDIO }
 
-struct Config {
+struct Actor {
     func: FuncName,
     no_flush: bool
 }
 
+impl<R: api::Runtime> api::Actor<R> for Actor {
+    fn spawn(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        todo!()
+    }
+
+    fn spawn_composite(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        todo!()
+    }
+
+    fn spawn_source(&'static self, runtime: Box<R>) {
+        todo!()
+    }
+}
+
 impl api::Component for Component {
-    fn create(&self, args: Vec<(String, api::Argument)>) -> api::Result<Box<api::Actor>> {
+    fn create(&self, args: Vec<(String, api::Argument)>) -> api::Result<Box<dyn api::Actor>> {
         #[allow(dead_code)]
         #[derive(Debug, Deserialize)]
+        #[serde(crate="api::serde")]
         struct _Config<'a> {
             direction: &'a str,
             outputs: Vec<String>,
@@ -34,7 +48,7 @@ impl api::Component for Component {
             _ => unreachable!()
         };
 
-        let config = &*Box::leak(Box::new(Config { func, no_flush: _config.no_flush }));
+        let config = &*Box::leak(Box::new(Actor { func, no_flush: _config.no_flush }));
 
         Ok(Box::new(move |runtime, meta| {
             Ok(Box::pin(run(config, runtime, meta)))
@@ -46,7 +60,7 @@ impl api::Component for Component {
     }
 }
 
-async fn run(config: &Config, mut runtime: Box<dyn api::Runtime>, meta: api::MetaData) -> api::Result<()> {
+async fn run(config: &Actor, mut runtime: Box<dyn api::Runtime>, meta: api::MetaData) -> api::Result<()> {
     if runtime.is_source() && matches!(config.func, FuncName::STDIN | FuncName::STDIO) {
         let mut stdin = tokio::io::stdin();
         let mut buffer = vec![0; 1024].into_boxed_slice();

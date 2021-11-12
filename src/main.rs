@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::atomic::AtomicU32};
 
 mod script;
 mod runtime;
@@ -8,6 +8,14 @@ struct Node {
     forward_actor: &'static dyn api::Actor,
     backward_actor: &'static dyn api::Actor,
     outputs: &'static [usize],
+
+    task_count: AtomicU32
+}
+
+impl Node {
+    fn new(forward_actor: &'static dyn api::Actor, backward_actor: &'static dyn api::Actor, outputs: &'static [usize]) -> Self {
+        Self { forward_actor, backward_actor, outputs, task_count: Default::default() }
+    }
 }
 
 #[allow(clippy::vec_init_then_push)]
@@ -44,7 +52,7 @@ fn main() {
                 continue
             }
             assert_eq!(x.forward_actor as *const _ as *const u8, x.backward_actor as *const _ as *const u8);
-            runtime.spawn(x)
+            runtime.spawn_source(x)
         }
         api::tokio::signal::ctrl_c().await.unwrap();
     });

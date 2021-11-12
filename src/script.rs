@@ -11,6 +11,7 @@ struct ScriptParser;
 
 // intermediate graph presentation
 struct Node {
+    // TODO: record the source position of the node so we can print it out in error messages?
     comp: &'static dyn Component,
     args: Vec<(String, Argument)>,
 }
@@ -164,13 +165,13 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component]) -> 
             CNode::Single { node, outputs } => {
                 let output_names: Vec<_> = outputs.iter().map(|_| "".to_string()).collect();
                 let actor = Box::leak(node.build(output_names)?);
-                Ok(super::Node { forward_actor: actor, backward_actor: actor, outputs: outputs.leak() })
+                Ok(super::Node::new(actor, actor, outputs.leak()))
             }
             CNode::Composite { forward, backward, output } => {
                 let output_names: Vec<_> = output.iter().map(|_| "".to_string()).collect();
                 let forward_actor = Box::leak(forward.build(output_names.clone())?);
                 let backward_actor = Box::leak(backward.build(output_names)?);
-                Ok(super::Node { forward_actor, backward_actor, outputs: output.into_iter().collect::<Vec<_>>().leak() })
+                Ok(super::Node::new(forward_actor, backward_actor, output.into_iter().collect::<Vec<_>>().leak()))
             }
         }
     }).collect()
