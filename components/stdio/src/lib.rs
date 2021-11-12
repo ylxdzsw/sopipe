@@ -20,7 +20,6 @@ impl<R: api::Runtime> api::Component<R> for Component {
         #[derive(Debug, Deserialize)]
         #[serde(crate="api::serde")]
         struct Config<'a> {
-            direction: &'a str,
             outputs: Vec<String>,
             function_name: &'a str,
             #[serde(default)]

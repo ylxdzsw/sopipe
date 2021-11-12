@@ -13,7 +13,6 @@ impl<R: api::Runtime> api::Component<R> for Component {
         #[serde(crate="api::serde")]
         struct Config<'a> {
             key: &'a str,
-            direction: &'a str,
             outputs: Vec<String>,
             function_name: &'a str,
             #[serde(default)]

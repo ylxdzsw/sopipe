@@ -101,15 +101,16 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component<R>]) 
                     match &symbol_table[&ident] {
                         SymbolValue::Function(comp) => {
                             args.push(("function_name".into(), ident.into()));
-                            let index = cnodes.len();
                             let cnode = RefCell::new(CNode::Single {
                                 node: Node { comp: *comp, args },
                                 outputs: vec![]
                             });
+                            let index = cnodes.len();
+                            cnodes.push(cnode);
                             index
                         }
                         SymbolValue::CNode(cnode) => {
-                            cnode.clone()
+                            *cnode
                         },
                     }
                 }

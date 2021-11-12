@@ -32,7 +32,6 @@ pub trait Component<R: Runtime>: Sync {
     /// create an instance for a node in the pipeline.
     /// the arguments includes user-provided arguments as well as the following:
     /// function_name (String): the name of function in the user script
-    /// direction (String): "forward" or "backward"
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
     fn create(&'static self, arguments: Vec<(String, Argument)>) -> Box<dyn Actor<R>>;
 }

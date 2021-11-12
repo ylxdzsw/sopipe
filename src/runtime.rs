@@ -20,13 +20,14 @@ pub struct Address(tokio::sync::mpsc::Sender<Box<[u8]>>);
 
 impl api::Address for Address {
     fn send(&mut self, msg: Box<[u8]>) -> std::pin::Pin<Box<dyn std::future::Future<Output=Result<(), ()>> + Send + '_>> {
-        Box::pin(async { self.0.send(msg).await.map_err(|e| ()) })
+        Box::pin(async { self.0.send(msg).await.map_err(|_| ()) })
     }
 }
 
 pub struct Mailbox(tokio::sync::mpsc::Receiver<Box<[u8]>>);
 
 impl api::Mailbox for Mailbox {
+    #[allow(clippy::type_complexity)]
     fn recv(&mut self) -> std::pin::Pin<Box<dyn std::future::Future<Output=Option<Box<[u8]>>> + Send + '_>> {
         Box::pin(self.0.recv())
     }
@@ -51,7 +52,7 @@ impl api::Runtime for RuntimeHandler {
         let address = address.into();
         let mailbox = mailbox.into();
 
-        let next = &self.runtime.nodes[index];
+        let next = &self.runtime.nodes[self.node.outputs[index]];
 
         #[allow(clippy::ptr_eq)]
         if next.forward_actor as *const _ as *const u8 == next.backward_actor as *const _ as *const u8 {
@@ -77,7 +78,11 @@ impl api::Runtime for RuntimeHandler {
         (Address(tx), Mailbox(rx))
     }
 
-    fn spawn_task(&self, task: impl std::future::Future + Send + 'static) {
-        todo!()
+    fn spawn_task<F: std::future::Future + Send + 'static>(&self, task: F) where F::Output: Send {
+        tokio::spawn(async {
+            self.node.task_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            task.await;
+            self.node.task_count.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+        });
     }
 }

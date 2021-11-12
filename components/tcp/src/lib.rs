@@ -19,7 +19,6 @@ impl<R: api::Runtime> api::Component<R> for Component {
             #[serde(default)]
             active: bool,
 
-            direction: String,
             outputs: Vec<String>,
             function_name: String,
         }

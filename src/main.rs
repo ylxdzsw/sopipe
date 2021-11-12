@@ -57,7 +57,19 @@ fn main() {
             runtime.spawn_source(x)
         }
         tokio::signal::ctrl_c().await.unwrap();
-    });
 
+        eprintln!("SIGINT recieved. Stoping accepting new connections.\n\
+                   Waiting for exiting tasks. Press Ctrl+C again to force exit.");
+
+        tokio::spawn(async {
+            tokio::signal::ctrl_c().await.unwrap();
+            eprintln!("SIGINT recieved. Aborting.");
+            std::process::exit(1);
+        });
+
+        while nodes.iter().any(|node| node.task_count.load(std::sync::atomic::Ordering::Relaxed) != 0) {
+            tokio::time::sleep(tokio::time::Duration::from_millis(20)).await
+        }
+    });
 }
 

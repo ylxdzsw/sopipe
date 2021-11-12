@@ -27,5 +27,5 @@ pub trait Runtime: Sync + Send {
 
     /// spawn a task that runs on the background
     /// no handler is returned. Use channels to get results if necessary.
-    fn spawn_task(&self, task: impl Future + Send + 'static);
+    fn spawn_task<F: Future + Send + 'static>(&self, task: F) where F::Output: Send;
 }
