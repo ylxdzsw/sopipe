@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 api = { path = "../../api" }
-tokio = { version = "1.12", features = ["io-util", "net"] }
+tokio = { version = "1.12", features = ["io-util", "net", "time"] }

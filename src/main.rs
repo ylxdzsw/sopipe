@@ -43,13 +43,13 @@ fn main() {
 
     let nodes: &_ = script::load_script(&args[1], &components).leak();
 
-    let (runlevel_sender, runlevel) = tokio::sync::watch::channel(api::RunLevel::Init);
-
-    let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes, runlevel)));
+    let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes)));
 
     let tokio_rt = tokio::runtime::Runtime::new().unwrap();
 
     tokio_rt.block_on(async move {
+        runtime.set_run_level(api::RunLevel::Init);
+
         let non_source: BTreeSet<_> = nodes.iter()
             .flat_map(|x| x.outputs.iter())
             .copied().collect();
@@ -61,21 +61,22 @@ fn main() {
             runtime.spawn_source(x)
         }
 
-        let _ = runlevel_sender.send(api::RunLevel::Run);
-
-        tokio::signal::ctrl_c().await.unwrap();
-
-        eprintln!("SIGINT recieved. Stoping accepting new connections.\n\
-                   Waiting for exiting tasks. Press Ctrl+C again to force exit.");
+        // TODO: actually wait for all tasks to finish Init
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        runtime.set_run_level(api::RunLevel::Run);
 
         tokio::spawn(async {
+            tokio::signal::ctrl_c().await.unwrap();
+            runtime.set_run_level(api::RunLevel::Shut);
+            eprintln!("SIGINT recieved. Stoping accepting new connections.\n\
+                       Waiting for exiting tasks. Press Ctrl+C again to force exit.");
+
             tokio::signal::ctrl_c().await.unwrap();
             eprintln!("SIGINT recieved. Aborting.");
             std::process::exit(1);
         });
 
-        let _ = runlevel_sender.send(api::RunLevel::Shut);
-
+        // Silently exit when no task runinng. Long-running tasks like tcp listening won't die unless runlevel enters Shut.
         while nodes.iter().any(|node| node.task_count.load(std::sync::atomic::Ordering::Relaxed) != 0) {
             tokio::time::sleep(tokio::time::Duration::from_millis(20)).await
         }

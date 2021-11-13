@@ -51,7 +51,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
-    fn spawn(&'static self, runtime: Box<R>, _metadata: api::MetaData, _address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+    fn spawn(&'static self, runtime: R, _metadata: api::MetaData, _address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         if self.has_output {
             todo!()
         }
@@ -63,11 +63,11 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
         runtime.spawn_task(self.write_stdout(mailbox.expect("no input")));
     }
 
-    fn spawn_composite(&'static self, _runtime: Box<R>, _metadata: api::MetaData, _address: Option<R::Address>, _mailbox: Option<R::Mailbox>) {
+    fn spawn_composite(&'static self, _runtime: R, _metadata: api::MetaData, _address: Option<R::Address>, _mailbox: Option<R::Mailbox>) {
         todo!()
     }
 
-    fn spawn_source(&'static self, runtime: Box<R>) {
+    fn spawn_source(&'static self, runtime: R) {
         if let FuncName::STDOUT = self.func {
             panic!("misuse")
         }
@@ -97,7 +97,10 @@ impl Actor {
                 return Ok(())
             }
 
-            addr.send(buffer[..n].iter().copied().collect()).await;
+            #[allow(clippy::question_mark)]
+            if addr.send(buffer[..n].iter().copied().collect()).await.is_err() {
+                return Ok(())
+            }
         }
     }
 

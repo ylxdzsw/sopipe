@@ -36,7 +36,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
-    fn spawn(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+    fn spawn(&'static self, runtime: R, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         let (forward_address, forward_mailbox) = runtime.channel();
         let (backward_address, backward_mailbox) = runtime.channel();
         runtime.spawn_next(0, metadata, backward_address, forward_mailbox);
@@ -44,11 +44,11 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
         runtime.spawn_task(xor(self.key, address.expect("no address"), backward_mailbox));
     }
 
-    fn spawn_composite(&'static self, runtime: Box<R>, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+    fn spawn_composite(&'static self, runtime: R, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         todo!()
     }
 
-    fn spawn_source(&'static self, runtime: Box<R>) {
+    fn spawn_source(&'static self, runtime: R) {
         todo!()
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::atomic::AtomicU64;
 use api::serde::Deserialize;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::{TcpListener, TcpStream}};
+use tokio::{io::{AsyncReadExt, AsyncWriteExt}, net::TcpListener};
 
 struct Component;
 
@@ -37,26 +37,6 @@ impl<R: api::Runtime> api::Component<R> for Component {
         &["tcp"]
     }
 }
-
-// async fn forward(mut stream: (impl tokio::io::AsyncRead + Unpin), next: Box<dyn api::Address>) -> api::Result<()> {
-//     let mut buffer = vec![0; 1024].into_boxed_slice();
-//     loop {
-//         let n = stream.read(&mut buffer[..]).await?;
-//         if n == 0 { // EOF
-//             return Ok(())
-//         }
-
-//         let fut = next.send(buffer[..n].iter().copied().collect());
-//         fut.await;
-//     }
-// }
-
-// async fn backward(mut runtime: Box<dyn api::Runtime>, mut stream: (impl tokio::io::AsyncWrite + Unpin)) -> api::Result<()> {
-//     while let Some(msg) = runtime.read().await {
-//         stream.write_all(&msg).await?
-//     }
-//     Ok(())
-// }
 
 pub fn init<R: api::Runtime>() -> &'static dyn api::Component<R> {
     &Component {}

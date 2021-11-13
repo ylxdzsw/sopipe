@@ -1,18 +1,24 @@
+use std::{future::Future, sync::atomic::AtomicU8};
+
 use super::Node;
 
 pub struct Runtime {
     nodes: &'static [Node],
-    runlevel: tokio::sync::watch::Receiver<api::RunLevel>
+    runlevel: AtomicU8
 }
 
 impl Runtime {
-    pub(crate) fn new(nodes: &'static [Node], runlevel: tokio::sync::watch::Receiver<api::RunLevel>) -> Self {
-        Self { nodes, runlevel }
+    pub(crate) fn new(nodes: &'static [Node]) -> Self {
+        Self { nodes, runlevel: (api::RunLevel::Init as u8).into() }
     }
 
     pub(crate) fn spawn_source(&'static self, node: &'static Node) {
-        let handler = Box::new(RuntimeHandler { runtime: self, node, is_composite: false });
+        let handler = RuntimeHandler { runtime: self, node, is_composite: false };
         node.forward_actor.spawn_source(handler)
+    }
+
+    pub(crate) fn set_run_level(&'static self, runlevel: api::RunLevel) {
+        self.runlevel.store(runlevel as _, std::sync::atomic::Ordering::Relaxed)
     }
 }
 
@@ -57,19 +63,19 @@ impl api::Runtime for RuntimeHandler {
 
         #[allow(clippy::ptr_eq)]
         if next.forward_actor as *const _ as *const u8 == next.backward_actor as *const _ as *const u8 {
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false });
+            let handler = RuntimeHandler { runtime: self.runtime, node: next, is_composite: false };
             next.forward_actor.spawn(handler, metadata, address, mailbox)
         } else {
             let (forward_address_next, forward_mailbox_next) = self.channel();
             let (backward_address_next, backward_mailbox_next) = self.channel();
 
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true });
+            let handler = RuntimeHandler { runtime: self.runtime, node: next, is_composite: true };
             next.forward_actor.spawn_composite(handler, metadata.clone(), Some(forward_address_next), mailbox);
 
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true });
+            let handler = RuntimeHandler { runtime: self.runtime, node: next, is_composite: true };
             next.backward_actor.spawn_composite(handler, metadata.clone(), address, Some(backward_mailbox_next));
 
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false });
+            let handler = RuntimeHandler { runtime: self.runtime, node: next, is_composite: false };
             handler.spawn_next(0, metadata, Some(backward_address_next), Some(forward_mailbox_next))
         }
     }
@@ -88,11 +94,25 @@ impl api::Runtime for RuntimeHandler {
         });
     }
 
-    fn get_runlevel(&self) -> api::RunLevel {
-        *self.runtime.runlevel.borrow()
+    fn spawn_task_with_runtime<C, F>(&self, task: C) where
+        C: FnOnce(Self) -> F,
+        F: Future + Send + 'static,
+        F::Output: Send
+    {
+        let handler = RuntimeHandler { ..*self };
+        self.spawn_task(task(handler))
     }
 
-    fn watch_runlevel(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output=()> + Send + '_>> {
-        Box::pin(async { self.runtime.runlevel.clone().changed().await.unwrap(); })
+    fn get_runlevel(&self) -> api::RunLevel {
+        const INIT: u8 = api::RunLevel::Init as _;
+        const RUN: u8 = api::RunLevel::Run as _;
+        const SHUT: u8 = api::RunLevel::Shut as _;
+
+        match self.runtime.runlevel.load(std::sync::atomic::Ordering::Relaxed) {
+            INIT => api::RunLevel::Init,
+            RUN => api::RunLevel::Run,
+            SHUT => api::RunLevel::Shut,
+            _ => unreachable!()
+        }
     }
 }
