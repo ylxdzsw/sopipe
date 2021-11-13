@@ -2,6 +2,9 @@ use std::{future::Future, pin::Pin};
 
 use super::MetaData;
 
+#[derive(Clone, Copy)]
+pub enum RunLevel { Init, Run, Shut }
+
 pub trait Address: Clone + Send + Sync {
     fn send(&mut self, msg: Box<[u8]>) -> Pin<Box<dyn Future<Output=Result<(), ()>> + Send + '_>>;
 }
@@ -28,4 +31,10 @@ pub trait Runtime: Sync + Send {
     /// spawn a task that runs on the background
     /// no handler is returned. Use channels to get results if necessary.
     fn spawn_task<F: Future + Send + 'static>(&self, task: F) where F::Output: Send;
+
+    /// get the current runlevel. Only source nodes need to care about this.
+    fn get_runlevel(&self) -> RunLevel;
+
+    /// watch changes on the runlevel.
+    fn watch_runlevel(&mut self) -> Pin<Box<dyn Future<Output=()> + Send + '_>>;
 }

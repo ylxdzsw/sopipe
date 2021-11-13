@@ -41,7 +41,9 @@ fn main() {
 
     let nodes: &_ = script::load_script(&args[1], &components).leak();
 
-    let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes)));
+    let (runlevel_sender, runlevel) = tokio::sync::watch::channel(api::RunLevel::Init);
+
+    let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes, runlevel)));
 
     let tokio_rt = tokio::runtime::Runtime::new().unwrap();
 
@@ -56,6 +58,9 @@ fn main() {
             assert_eq!(x.forward_actor as *const _ as *const u8, x.backward_actor as *const _ as *const u8);
             runtime.spawn_source(x)
         }
+
+        let _ = runlevel_sender.send(api::RunLevel::Run);
+
         tokio::signal::ctrl_c().await.unwrap();
 
         eprintln!("SIGINT recieved. Stoping accepting new connections.\n\
@@ -66,6 +71,8 @@ fn main() {
             eprintln!("SIGINT recieved. Aborting.");
             std::process::exit(1);
         });
+
+        let _ = runlevel_sender.send(api::RunLevel::Shut);
 
         while nodes.iter().any(|node| node.task_count.load(std::sync::atomic::Ordering::Relaxed) != 0) {
             tokio::time::sleep(tokio::time::Duration::from_millis(20)).await
