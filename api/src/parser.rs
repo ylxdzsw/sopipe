@@ -2,35 +2,33 @@ use std::collections::BTreeSet;
 
 use super::Argument;
 
-// TODO: remove thiserror and directly implemented as api::Error
-use thiserror::Error;
-
 use serde::Deserialize;
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum ArgParseError {
-    #[error("the type `{0}` is not supported")]
     UnsupportedType(&'static str),
-    #[error("the input number does not fit `{0}`")]
     Overflow(&'static str),
-    #[error("expecting {expected}, received {supplied}")]
     TypeError {
         supplied: &'static str,
         expected: &'static str
     },
-    #[error("deserialize error from serde. msg: {0}")]
     DeserializeError(String),
-    #[error("expecting {expected} arguments, received {supplied}")]
     TooManyArguments {
         supplied: usize,
         expected: usize
     },
-    #[error("too many positional arguments")]
     TooManyPositionalArguments,
-    #[error("unknown data store error")]
     Unknown,
 }
+
+impl std::fmt::Display for ArgParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for ArgParseError {}
 
 impl serde::de::Error for ArgParseError {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {

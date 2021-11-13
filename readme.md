@@ -5,8 +5,8 @@ Sopipe is socat with middlewares. It can be used for NAT penetration, secured* a
 proxying†, etc. with arbitrarily chained encryption, compression, authentication, and error correction.
 
 \* Sopipe has not got security review. The encryption-related components should be used with ones own risks. <br>
-† Sopipe is not designed for circumventing censorship, and shall not be used for it. The authors and contributors do not
-take any responsibility for abuse or misuse of this software.
+† Sopipe is not designed for circumventing censorship. The authors and contributors do not take any responsibility for
+abuse or misuse of this software.
 
 ## Why need it?
 
@@ -19,7 +19,7 @@ output, where each component is an independent process. It is robust and flexibl
    impractical (for 1-core VPS). Sopipe is backed by coroutine and can trivially support large numbers of short-lived
    connections.
 3. **Portability**: The availability of the components varies from platform to platform, making porting the scripts a
-   hassle. Sopipe is designed to be pure-rust that supports statically linking. No more cygwin. No more dockers.
+   hassle. Sopipe is designed to be pure-rust that supports static linking. No more cygwin. No more dockers.
 
 ## Gallery
 
