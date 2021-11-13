@@ -24,6 +24,8 @@ impl Node {
 fn main() {
     let mut components = vec![];
 
+    // TODO: use https://github.com/dtolnay/inventory to register the plugins?
+
     #[cfg(feature="stdio")]
     components.push(stdio::init());
 

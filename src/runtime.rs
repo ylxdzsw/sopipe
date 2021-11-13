@@ -11,7 +11,7 @@ impl Runtime {
     }
 
     pub(crate) fn spawn_source(&'static self, node: &'static Node) {
-        let handler = Box::new(RuntimeHandler { runtime: self, node, is_composite: false, runlevel: None });
+        let handler = Box::new(RuntimeHandler { runtime: self, node, is_composite: false });
         node.forward_actor.spawn_source(handler)
     }
 }
@@ -38,8 +38,7 @@ impl api::Mailbox for Mailbox {
 pub struct RuntimeHandler {
     runtime: &'static Runtime,
     node: &'static Node,
-    is_composite: bool, // composite nodes are not allowed to spawn next
-    runlevel: Option<tokio::sync::watch::Receiver<api::RunLevel>> // optional local copy for watching
+    is_composite: bool // composite nodes are not allowed to spawn next
 }
 
 impl api::Runtime for RuntimeHandler {
@@ -58,24 +57,25 @@ impl api::Runtime for RuntimeHandler {
 
         #[allow(clippy::ptr_eq)]
         if next.forward_actor as *const _ as *const u8 == next.backward_actor as *const _ as *const u8 {
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false, runlevel: None });
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false });
             next.forward_actor.spawn(handler, metadata, address, mailbox)
         } else {
             let (forward_address_next, forward_mailbox_next) = self.channel();
             let (backward_address_next, backward_mailbox_next) = self.channel();
 
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true, runlevel: None });
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true });
             next.forward_actor.spawn_composite(handler, metadata.clone(), Some(forward_address_next), mailbox);
 
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true, runlevel: None });
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: true });
             next.backward_actor.spawn_composite(handler, metadata.clone(), address, Some(backward_mailbox_next));
 
-            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false, runlevel: None });
+            let handler = Box::new(RuntimeHandler { runtime: self.runtime, node: next, is_composite: false });
             handler.spawn_next(0, metadata, Some(backward_address_next), Some(forward_mailbox_next))
         }
     }
 
     fn channel(&self) -> (Self::Address, Self::Mailbox) {
+        // TODO: componenets give hints about buffer size, so that fast components (like xor) don't increase the overal buffer in the stack
         let (tx, rx) = tokio::sync::mpsc::channel(4);
         (Address(tx), Mailbox(rx))
     }
@@ -92,8 +92,7 @@ impl api::Runtime for RuntimeHandler {
         *self.runtime.runlevel.borrow()
     }
 
-    fn watch_runlevel(&mut self) -> std::pin::Pin<Box<dyn std::future::Future<Output=()> + Send + '_>> {
-        let runlevel = self.runlevel.get_or_insert_with(|| self.runtime.runlevel.clone());
-        Box::pin(async move { runlevel.changed().await.unwrap(); })
+    fn watch_runlevel(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output=()> + Send + '_>> {
+        Box::pin(async { self.runtime.runlevel.clone().changed().await.unwrap(); })
     }
 }

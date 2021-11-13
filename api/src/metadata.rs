@@ -1,5 +1,7 @@
 use std::{any::Any, collections::BTreeMap, sync::Arc};
 
+// TODO: what about define a struct that keeps all predefined keys with types?
+
 /// Meta data dict.
 /// Cloning a MetaData will be "shallow". However, the values in MetaData are immutable unless it has interior mutability.
 #[derive(Default, Debug, Clone)]

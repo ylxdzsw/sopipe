@@ -5,6 +5,8 @@ use super::MetaData;
 #[derive(Clone, Copy)]
 pub enum RunLevel { Init, Run, Shut }
 
+// TODO: Box<[u8]> causes a lot of allocation and memcpy. Design a structure that can grow on both sides? Ideally components can give hints about how many bytes they are going to add, so we can preallocate at the begining.
+
 pub trait Address: Clone + Send + Sync {
     fn send(&mut self, msg: Box<[u8]>) -> Pin<Box<dyn Future<Output=Result<(), ()>> + Send + '_>>;
 }
@@ -36,5 +38,5 @@ pub trait Runtime: Sync + Send {
     fn get_runlevel(&self) -> RunLevel;
 
     /// watch changes on the runlevel.
-    fn watch_runlevel(&mut self) -> Pin<Box<dyn Future<Output=()> + Send + '_>>;
+    fn watch_runlevel(&self) -> Pin<Box<dyn Future<Output=()> + Send + '_>>;
 }

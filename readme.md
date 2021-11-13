@@ -1,14 +1,12 @@
 Sopipe
 ======
 
-Socat with middlewares.
+Sopipe is socat with middlewares. It can be used for NAT penetration, secured* and accelerated transmission, tunnelling,
+proxying†, etc. with arbitrarily chained encryption, compression, authentication, and error correction.
 
-> Disclaimer:
->
-> 1. Sopipe has not get security review. The encryption-related components should be used with ones own risk.
-> 2. Sopipe is not designed for circumventing censorship, and shall not be used for it.
->
-> The authors and contributors do not take any responsibility for abuse or misuse of this software.
+\* Sopipe has not got security review. The encryption-related components should be used with ones own risks. <br>
+† Sopipe is not designed for circumventing censorship, and shall not be used for it. The authors and contributors do not
+take any responsibility for abuse or misuse of this software.
 
 ## Why need it?
 
