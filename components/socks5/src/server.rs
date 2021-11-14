@@ -1,9 +1,9 @@
-use api::{Address, Mailbox, Runtime};
+use api::{MetaData, Address, Mailbox, Runtime};
 
 pub struct Actor;
 
-impl<R: api::Runtime> api::Actor<R> for Actor {
-    fn spawn(&'static self, runtime: R, mut metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+impl<R: Runtime> api::Actor<R> for Actor {
+    fn spawn(&'static self, runtime: R, mut metadata: MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         let mut address = address.expect("socks5 no address to return");
         let mut mailbox = mailbox.expect("socks5 no input");
 

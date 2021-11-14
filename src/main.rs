@@ -39,6 +39,9 @@ fn main() {
 
     // TODO: use https://github.com/dtolnay/inventory to register the plugins?
 
+    #[cfg(feature="echo")]
+    components.push(echo::init());
+
     #[cfg(feature="socks5")]
     components.push(socks5::init());
 

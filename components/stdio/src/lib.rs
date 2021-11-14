@@ -52,9 +52,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
     fn spawn(&'static self, runtime: R, _metadata: api::MetaData, _address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
-        if self.has_output {
-            todo!()
-        }
+        assert!(!self.has_output);
 
         if let FuncName::STDIN | FuncName::STDIO = self.func {
             panic!("sink node can only be stdout")
@@ -72,17 +70,13 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
             panic!("misuse")
         }
 
-        if self.has_output {
-            let (forward_address, forward_mailbox) = runtime.channel();
-            let (backward_address, backward_mailbox) = runtime.channel();
-            runtime.spawn_next(0, Default::default(), backward_address, forward_mailbox);
-            runtime.spawn_task(self.read_stdin(forward_address));
-            runtime.spawn_task(self.write_stdout(backward_mailbox));
-        } else { // trivial case: direct echo
-            let (address, mailbox) = runtime.channel();
-            runtime.spawn_task(self.read_stdin(address));
-            runtime.spawn_task(self.write_stdout(mailbox));
-        }
+        assert!(self.has_output);
+
+        let (forward_address, forward_mailbox) = runtime.channel();
+        let (backward_address, backward_mailbox) = runtime.channel();
+        runtime.spawn_next(0, Default::default(), backward_address, forward_mailbox);
+        runtime.spawn_task(self.read_stdin(forward_address));
+        runtime.spawn_task(self.write_stdout(backward_mailbox));
     }
 }
 

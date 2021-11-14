@@ -49,6 +49,7 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
     }
 
     fn spawn_source(&'static self, runtime: R) {
+        assert!(self.has_output);
         runtime.spawn_task_with_runtime(move |runtime| self.listen(runtime))
     }
 }
@@ -92,15 +93,11 @@ impl Actor {
                     meta.set("stream_id".into(), count.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
 
                     let (reader, writer) = stream.into_split();
-                    if self.has_output {
-                        let (forward_address, forward_mailbox) = runtime.channel();
-                        let (backward_address, backward_mailbox) = runtime.channel();
-                        runtime.spawn_next(0, meta, backward_address, forward_mailbox);
-                        runtime.spawn_task(read_tcp(reader, forward_address));
-                        runtime.spawn_task(write_tcp(writer, backward_mailbox));
-                    } else { // just echo
-                        todo!()
-                    }
+                    let (forward_address, forward_mailbox) = runtime.channel();
+                    let (backward_address, backward_mailbox) = runtime.channel();
+                    runtime.spawn_next(0, meta, backward_address, forward_mailbox);
+                    runtime.spawn_task(read_tcp(reader, forward_address));
+                    runtime.spawn_task(write_tcp(writer, backward_mailbox));
                 },
                 Ok(Err(err)) => {
                     eprintln!("accept error = {}", err)
