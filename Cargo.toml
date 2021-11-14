@@ -20,6 +20,6 @@ xor = { path = "components/xor", optional = true }
 core = ["tcp", "stdio"]
 
 # default includes most common components that supports static linking.
-default = ["core", "xor"]
+default = ["core", "xor", "socks5"]
 
 [workspace]

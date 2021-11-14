@@ -1,7 +1,7 @@
 [package]
 name = "socks5"
 version = "0.1.0"
-authors = ["Shiwei Zhang <ylxdzsw@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+api = { path = "../../api" }

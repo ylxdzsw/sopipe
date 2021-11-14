@@ -29,8 +29,8 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
     fn spawn(&'static self, runtime: R, mut metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         assert!(!self.has_output);
 
-        let mut addr = metadata.take::<String>("tcp_destination_addr").map(|x| *x);
-        let mut port = metadata.take::<u16>("tcp_destination_port").map(|x| *x);
+        let mut addr = metadata.take::<String>("destination_addr").map(|x| *x);
+        let mut port = metadata.take::<u16>("destination_port").map(|x| *x);
 
         if addr.is_some() || port.is_some() {
             if self.addr.is_some() || self.port.is_some() {
@@ -88,8 +88,8 @@ impl Actor {
                     eprintln!("Accepted connection from {:?}", origin);
                     let mut meta = api::MetaData::default();
                     meta.set("stream_type".into(), "TCP".to_string());
-                    meta.set("tcp_origin_addr".into(), origin);
-                    meta.set("tcp_stream_id".into(), count.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
+                    meta.set("origin_addr".into(), origin);
+                    meta.set("stream_id".into(), count.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
 
                     let (reader, writer) = stream.into_split();
                     if self.has_output {

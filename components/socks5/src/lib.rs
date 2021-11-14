@@ -1,25 +1,38 @@
-// include!("../../api.rs");
+use api::serde::Deserialize;
 
-// struct ForwardContext {}
+mod server;
 
-// impl ForwardContext {
-//     fn new() -> Box<Self> {
-//         Box::new(Self {})
-//     }
+struct Component;
 
-//     fn write(&mut self, stream: *mut c_void, data: &[u8]) {
-//         sopipe_write(stream, data);
-//     }
-// }
+#[derive(Debug, Deserialize)]
+#[serde(crate="api::serde")]
+struct Config<'a> {
+    outputs: Vec<&'a str>,
+    function_name: &'a str,
+}
 
-// struct BackwardContext {}
+impl<R: api::Runtime> api::Component<R> for Component {
+    fn create(&'static self, arguments: Vec<(String, api::Argument)>) -> Box<dyn api::Actor<R>> {
+        let config: Config = api::parse_args(&arguments).unwrap();
 
-// impl BackwardContext {
-//     fn new() -> Box<Self> {
-//         Box::new(Self {})
-//     }
+        match config.function_name {
+            "socks5_server" => {
+                assert!(config.outputs.len() == 1);
+                Box::new(server::Actor)
+            }
+            "socks5_client" => {
+                todo!()
+            }
+            _ => unreachable!()
+        }
+    }
 
-//     fn write(&mut self, stream: *mut c_void, data: &[u8]) {
-//         sopipe_write(stream, data);
-//     }
-// }
+    fn functions(&self) -> &'static [&'static str] {
+        &["socks5_server", "socks5_client"]
+    }
+}
+
+pub fn init<R: api::Runtime>() -> &'static dyn api::Component<R> {
+    &Component {}
+}
+
