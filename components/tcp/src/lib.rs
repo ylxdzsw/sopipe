@@ -12,13 +12,8 @@ mod active;
 #[serde(crate="api::serde")]
 struct Config {
     #[serde(default)]
-    _pos_arg_1: api::Argument,
-
-    #[serde(default)]
-    _pos_arg_2: api::Argument,
-
+    addr: api::Argument,
     port: Option<u16>,
-    addr: Option<String>,
 
     #[serde(default)]
     active: bool,
@@ -28,50 +23,19 @@ struct Config {
 }
 
 impl Config {
-    fn get_addr_and_port(&self) -> (Option<std::net::IpAddr>, Option<u16>) {
-        let mut addr: Option<std::net::IpAddr> = None;
+    fn get_addr_and_port(&self) -> (Option<String>, Option<u16>) {
+        let mut addr: Option<String> = None;
         let mut port: Option<u16> = self.port;
 
-        let mut try_fill_addr = |x: std::net::IpAddr| {
-            if addr.is_some() {
-                panic!("specified address multiple times")
-            }
-            addr = Some(x);
-        };
-
-        let mut try_fill_port = |x: u16| {
-            if port.is_some() {
-                panic!("specified portess multiple times")
-            }
-            port = Some(x);
-        };
-
-        if let Some(s) = &self.addr {
-            if let Ok(ip_addr) = s.parse::<std::net::IpAddr>() {
-                try_fill_addr(ip_addr);
-            } else {
-                panic!("wrong address format")
-            }
-        }
-
-        for pos_arg in [&self._pos_arg_1, &self._pos_arg_2] {
-            match pos_arg {
-                api::Argument::String(s) => {
-                    if let Ok(socket_addr) = s.parse::<std::net::SocketAddr>() {
-                        try_fill_addr(socket_addr.ip());
-                        try_fill_port(socket_addr.port());
-                    } else if let Ok(ip_addr) = s.parse::<std::net::IpAddr>() {
-                        try_fill_addr(ip_addr);
-                    } else {
-                        panic!("wrong address format: {}", s)
-                    }
-                },
-                api::Argument::Int(i) => {
-                    try_fill_port(*i as _)
-                },
-                api::Argument::Vec(_) => panic!("wrong argument type"),
-                api::Argument::None => {},
-            }
+        match self.addr.clone() {
+            api::Argument::String(s) => {
+                addr = Some(s);
+            },
+            api::Argument::Int(i) => {
+                port = Some(i as _)
+            },
+            api::Argument::Vec(_) => panic!("wrong argument type"),
+            api::Argument::None => {},
         }
 
         (addr, port)

@@ -1,10 +1,11 @@
-use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
+
+use tokio::net::ToSocketAddrs;
 
 use super::*;
 
 pub struct Actor {
-    addr: Option<IpAddr>,
+    addr: Option<String>,
     port: Option<u16>,
     has_output: bool
 }
@@ -28,16 +29,23 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
     fn spawn(&'static self, runtime: R, mut metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         assert!(!self.has_output);
 
-        let dest = if let Some(dest) = metadata.take::<SocketAddr>("tcp_destination") {
+        let mut addr = metadata.take::<String>("tcp_destination_addr").map(|x| *x);
+        let mut port = metadata.take::<u16>("tcp_destination_port").map(|x| *x);
+
+        if addr.is_some() || port.is_some() {
             if self.addr.is_some() || self.port.is_some() {
                 panic!("The stream already contains destination information")
             }
-            *dest
         } else {
-            SocketAddr::new(self.addr.unwrap(), self.port.unwrap())
-        };
+            addr = self.addr.clone();
+            port = self.port;
+        }
 
-        runtime.spawn_task_with_runtime(move |runtime| self.connect(runtime, dest, address.unwrap(), mailbox.unwrap()))
+        if let Some(port) = port {
+            runtime.spawn_task_with_runtime(move |runtime| self.connect(runtime, (addr.unwrap(), port) , address.unwrap(), mailbox.unwrap()))
+        } else {
+            runtime.spawn_task_with_runtime(move |runtime| self.connect(runtime, addr.unwrap(), address.unwrap(), mailbox.unwrap()))
+        }
     }
 
     fn spawn_source(&'static self, runtime: R) {
@@ -46,7 +54,7 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
 }
 
 impl Actor {
-    async fn connect(&self, runtime: impl api::Runtime, dest: SocketAddr, address: impl api::Address, mailbox: impl api::Mailbox) {
+    async fn connect(&self, runtime: impl api::Runtime, dest: impl ToSocketAddrs, address: impl api::Address, mailbox: impl api::Mailbox) {
         match tokio::net::TcpStream::connect(dest).await {
             Ok(stream) => {
                 let (reader, writer) = stream.into_split();
@@ -61,8 +69,13 @@ impl Actor {
     }
 
     async fn listen(&self, runtime: impl api::Runtime) {
-        let addr = self.addr.unwrap_or_else(|| "0.0.0.0".parse().unwrap());
-        let listener = TcpListener::bind(SocketAddr::new(addr, self.port.unwrap())).await.unwrap();
+        let addr = self.addr.as_deref().unwrap_or("0.0.0.0");
+        let listener = if let Some(port) = self.port {
+            TcpListener::bind((addr, port)).await.unwrap()
+        } else {
+            TcpListener::bind(addr).await.unwrap()
+        };
+
         let count = AtomicU64::new(0);
 
         while let api::RunLevel::Init = runtime.get_runlevel() {

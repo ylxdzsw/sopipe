@@ -5,6 +5,19 @@ mod runtime;
 
 type R = runtime::RuntimeHandler;
 
+struct Counter(&'static AtomicU32);
+impl Counter {
+    fn new(a: &'static AtomicU32) -> Self {
+        a.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Counter(a)
+    }
+}
+impl Drop for Counter {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 /// An (composite) actor with runtime-tracked states
 struct Node {
     forward_actor: &'static dyn api::Actor<R>,

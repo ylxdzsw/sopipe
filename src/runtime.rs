@@ -1,6 +1,6 @@
 use std::{future::Future, sync::atomic::AtomicU8};
 
-use super::Node;
+use super::{Counter, Node};
 
 pub struct Runtime {
     nodes: &'static [Node],
@@ -88,9 +88,8 @@ impl api::Runtime for RuntimeHandler {
 
     fn spawn_task<F: std::future::Future + Send + 'static>(&self, task: F) where F::Output: Send {
         tokio::spawn(async {
-            self.node.task_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let _c = Counter::new(&self.node.task_count); // use Drop in case of panic
             task.await;
-            self.node.task_count.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
         });
     }
 
