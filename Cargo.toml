@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "sync", "time", "signal"] } # "io-util", "io-std", "net", "time", "process", "fs"
+tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "sync", "time", "signal"] } # "io-util", "io-std", "net", "process", "fs"
 pest = "2.0"
 pest_derive = "2.0"
 
@@ -16,7 +16,10 @@ tcp = { path = "components/tcp", optional = true }
 xor = { path = "components/xor", optional = true }
 
 [features]
-core = ["tcp", "stdio"] # core includes endpoints components. A core-only build is a socat clone without middlewares. It serves as the basis for a "slim" build.
-default = ["core", "xor"] # default includes most common components. We select components such that a default build can be statically linked and <= 4MB after stripping.
+# core includes most endpoints. It serves as the basis for "slim" builds.
+core = ["tcp", "stdio"]
+
+# default includes most common components that supports static linking.
+default = ["core", "xor"]
 
 [workspace]

@@ -62,7 +62,7 @@ fn main() {
         }
 
         // TODO: actually wait for all tasks to finish Init
-        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
         runtime.set_run_level(api::RunLevel::Run);
 
         tokio::spawn(async {

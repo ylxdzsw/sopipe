@@ -49,7 +49,10 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component<R>]) 
     fn get_lit_value(pair: Pair<Rule>) -> Argument {
         let pair = pair.into_inner().next().unwrap();
         match pair.as_rule() {
-            Rule::string => Argument::String(pair.as_str().to_string()), // TODO: escaping!
+            Rule::string => { // TODO: escaping!
+                let s = pair.as_str();
+                Argument::String(s[1..s.len()-1].to_string())
+            },
             Rule::int => Argument::Int(pair.as_str().parse().unwrap()),
             _ => unreachable!()
         }

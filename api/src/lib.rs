@@ -12,16 +12,22 @@ pub use metadata::MetaData;
 mod runtime;
 pub use runtime::{Runtime, Address, Mailbox, RunLevel};
 
-
+#[allow(unused_variables)]
 pub trait Actor<R: Runtime>: Sync {
     /// spawn an instance of this actor, handling messages in the mailbox and send responses to the address.
-    fn spawn(&'static self, runtime: R, metadata: MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>);
+    fn spawn(&'static self, runtime: R, metadata: MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        unimplemented!()
+    }
 
     /// spawn an instance of this actor as a part in a composited component. It acts like a one-way pipe that process messages from the mailbox and send to the address.
-    fn spawn_composite(&'static self, runtime: R, metadata: MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>);
+    fn spawn_composite(&'static self, runtime: R, metadata: MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        unimplemented!()
+    }
 
     /// spawn an instance of this actor as a source node
-    fn spawn_source(&'static self, runtime: R);
+    fn spawn_source(&'static self, runtime: R) {
+        unimplemented!()
+    }
 }
 
 /// The main trait for components.

@@ -1,16 +1,20 @@
-use tokio::time::Duration;
+use std::net::{IpAddr, SocketAddr};
+use std::time::Duration;
 
 use super::*;
 
 pub struct Actor {
-    port: u16,
+    addr: Option<IpAddr>,
+    port: Option<u16>,
     has_output: bool
 }
 
 impl Actor {
     pub(crate) fn new(config: Config) -> Self {
-        listen::Actor {
-            port: config.port.unwrap(),
+        let (addr, port) = config.get_addr_and_port();
+
+        Actor {
+            addr, port,
             has_output: match config.outputs.len() {
                 0 => false,
                 1 => true,
@@ -21,12 +25,19 @@ impl Actor {
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
-    fn spawn(&'static self, _runtime: R, _metadata: api::MetaData, _address: Option<R::Address>, _mailbox: Option<R::Mailbox>) {
-        todo!()
-    }
+    fn spawn(&'static self, runtime: R, mut metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        assert!(!self.has_output);
 
-    fn spawn_composite(&'static self, _runtime: R, _metadata: api::MetaData, _address: Option<R::Address>, _mailbox: Option<R::Mailbox>) {
-        todo!()
+        let dest = if let Some(dest) = metadata.take::<SocketAddr>("tcp_destination") {
+            if self.addr.is_some() || self.port.is_some() {
+                panic!("The stream already contains destination information")
+            }
+            *dest
+        } else {
+            SocketAddr::new(self.addr.unwrap(), self.port.unwrap())
+        };
+
+        runtime.spawn_task_with_runtime(move |runtime| self.connect(runtime, dest, address.unwrap(), mailbox.unwrap()))
     }
 
     fn spawn_source(&'static self, runtime: R) {
@@ -35,8 +46,23 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
 }
 
 impl Actor {
+    async fn connect(&self, runtime: impl api::Runtime, dest: SocketAddr, address: impl api::Address, mailbox: impl api::Mailbox) {
+        match tokio::net::TcpStream::connect(dest).await {
+            Ok(stream) => {
+                let (reader, writer) = stream.into_split();
+                runtime.spawn_task(read_tcp(reader, address));
+                runtime.spawn_task(write_tcp(writer, mailbox));
+            },
+            Err(e) => {
+                eprintln!("connection error = {}", e);
+                // what to do? retry?
+            },
+        }
+    }
+
     async fn listen(&self, runtime: impl api::Runtime) {
-        let listener = TcpListener::bind(format!("127.0.0.1:{}", self.port)).await.unwrap();
+        let addr = self.addr.unwrap_or_else(|| "0.0.0.0".parse().unwrap());
+        let listener = TcpListener::bind(SocketAddr::new(addr, self.port.unwrap())).await.unwrap();
         let count = AtomicU64::new(0);
 
         while let api::RunLevel::Init = runtime.get_runlevel() {
@@ -48,6 +74,7 @@ impl Actor {
                 Ok(Ok((stream, origin))) => {
                     eprintln!("Accepted connection from {:?}", origin);
                     let mut meta = api::MetaData::default();
+                    meta.set("stream_type".into(), "TCP".to_string());
                     meta.set("tcp_origin_addr".into(), origin);
                     meta.set("tcp_stream_id".into(), count.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
 
@@ -67,30 +94,6 @@ impl Actor {
                 }
                 Err(_) => {} // timeout, check runlevel and listen again
             }
-        }
-    }
-}
-
-async fn read_tcp(mut stream: impl AsyncReadExt + Unpin, mut addr: impl api::Address) {
-    let mut buffer = vec![0; 1024].into_boxed_slice();
-    loop {
-        match stream.read(&mut buffer[..]).await {
-            Ok(0) => return, // EOF
-            Ok(n) => if addr.send(buffer[..n].iter().copied().collect()).await.is_err() {
-                return
-            }
-            Err(e) => {
-                eprintln!("IO error: {}", e);
-                return
-            }
-        }
-    }
-}
-
-async fn write_tcp(mut stream: impl AsyncWriteExt + Unpin, mut mail: impl api::Mailbox) {
-    while let Some(msg) = mail.recv().await {
-        if stream.write_all(&msg).await.is_err() {
-            break
         }
     }
 }
