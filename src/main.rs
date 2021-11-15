@@ -42,6 +42,9 @@ fn main() {
     #[cfg(feature="echo")]
     components.push(echo::init());
 
+    #[cfg(feature="exec")]
+    components.push(exec::init());
+
     #[cfg(feature="socks5")]
     components.push(socks5::init());
 
