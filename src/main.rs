@@ -39,6 +39,9 @@ fn main() {
 
     // TODO: use https://github.com/dtolnay/inventory to register the plugins?
 
+    #[cfg(feature="drop")]
+    components.push(drop::init());
+
     #[cfg(feature="echo")]
     components.push(echo::init());
 

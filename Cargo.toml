@@ -10,6 +10,7 @@ pest_derive = "2.0"
 
 api = { path = "api" }
 
+drop = { path = "components/drop", optional = true }
 echo = { path = "components/echo", optional = true }
 exec = { path = "components/exec", optional = true }
 socks5 = { path = "components/socks5", optional = true }
@@ -22,6 +23,6 @@ xor = { path = "components/xor", optional = true }
 core = ["tcp", "stdio", "exec"]
 
 # default includes most common components that supports static linking.
-default = ["core", "xor", "echo", "socks5"]
+default = ["core", "xor", "echo", "socks5", "drop"]
 
 [workspace]
