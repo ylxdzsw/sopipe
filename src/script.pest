@@ -17,7 +17,7 @@ args = { arg ~ ("," ~ arg)* }
 
 node = { ident ~ ("(" ~ args? ~ ")")? }
 
-cnode = { node ~ ("!" ~ node)? }
+cnode = { node ~ ("!!" ~ node)? }
 
 pipe = { cnode ~ ("=>" ~ cnode)* }
 

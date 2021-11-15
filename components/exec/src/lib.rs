@@ -43,7 +43,6 @@ impl<R: api::Runtime> api::Component<R> for Component {
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
-    #[allow(clippy::needless_return)]
     fn spawn(&'static self, runtime: R, _metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
         assert!(!self.has_output);
 
@@ -53,7 +52,34 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
             },
             Err(e) => {
                 eprintln!("{}", e);
-                return
+            },
+        }
+    }
+
+    fn spawn_composite(&'static self, runtime: R, _metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        match self.spawn() {
+            Ok(child) => {
+                pipe_exec(runtime, child, address.unwrap(), mailbox.unwrap());
+            },
+            Err(e) => {
+                eprintln!("{}", e);
+            },
+        }
+    }
+
+    fn spawn_source(&'static self, runtime: R) {
+        assert!(self.has_output);
+
+        let (forward_address, forward_mailbox) = runtime.channel();
+        let (backward_address, backward_mailbox) = runtime.channel();
+        runtime.spawn_next(0, Default::default(), backward_address, forward_mailbox);
+
+        match self.spawn() {
+            Ok(child) => {
+                pipe_exec(runtime, child, forward_address, backward_mailbox);
+            },
+            Err(e) => {
+                eprintln!("{}", e);
             },
         }
     }

@@ -43,6 +43,10 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
         runtime.spawn_task(xor(self.key, forward_address, mailbox.expect("no mailbox")));
         runtime.spawn_task(xor(self.key, address.expect("no address"), backward_mailbox));
     }
+
+    fn spawn_composite(&'static self, runtime: R, _metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+        runtime.spawn_task(xor(self.key, address.expect("no address"), mailbox.expect("no mailbox")));
+    }
 }
 
 async fn xor(key: &[u8], mut addr: impl api::Address, mut mail: impl api::Mailbox) {
