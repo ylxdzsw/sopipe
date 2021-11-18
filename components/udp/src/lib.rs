@@ -1,4 +1,4 @@
-use api::{Address, serde::Deserialize};
+use api::{serde::Deserialize, Address};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{ToSocketAddrs, UdpSocket};
@@ -56,7 +56,8 @@ impl Actor {
         let (addr, port) = config.get_addr_and_port();
 
         Actor {
-            addr, port,
+            addr,
+            port,
             has_output: match config.outputs.len() {
                 0 => false,
                 1 => true,
@@ -67,7 +68,13 @@ impl Actor {
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
-    fn spawn(&'static self, runtime: R, mut metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
+    fn spawn(
+        &'static self,
+        runtime: R,
+        mut metadata: api::MetaData,
+        address: Option<R::Address>,
+        mailbox: Option<R::Mailbox>,
+    ) {
         assert!(!self.has_output);
 
         let mut addr = metadata.take::<String>("destination_addr").map(|x| *x);
@@ -84,11 +91,11 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
 
         if let Some(port) = port {
             runtime.spawn_task_with_runtime(move |runtime| {
-                self.connect(runtime, (addr.unwrap(), port), address.unwrap(), mailbox.unwrap())
+                self.connect(runtime, (addr.unwrap(), port), address, mailbox)
             })
         } else {
             runtime.spawn_task_with_runtime(move |runtime| {
-                self.connect(runtime, addr.unwrap(), address.unwrap(), mailbox.unwrap())
+                self.connect(runtime, addr.unwrap(), address, mailbox)
             })
         }
     }
@@ -100,12 +107,22 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
 }
 
 impl Actor {
-    async fn connect(&self, runtime: impl api::Runtime, dest: impl ToSocketAddrs, address: impl api::Address, mailbox: impl api::Mailbox) {
+    async fn connect(
+        &self,
+        runtime: impl api::Runtime,
+        dest: impl ToSocketAddrs,
+        address: Option<impl api::Address>,
+        mailbox: Option<impl api::Mailbox>,
+    ) {
         let socket = Arc::new(UdpSocket::bind(("::", 0)).await.unwrap());
         socket.connect(dest).await.unwrap();
 
-        runtime.spawn_task(read_udp(socket.clone(), address));
-        runtime.spawn_task(write_udp(socket, mailbox));
+        if let Some(address) = address {
+            runtime.spawn_task(read_udp(socket.clone(), address));
+        }
+        if let Some(mailbox) = mailbox {
+            runtime.spawn_task(write_udp(socket, mailbox));
+        }
     }
 
     async fn listen(&self, runtime: impl api::Runtime) {
@@ -132,7 +149,7 @@ impl Actor {
                     eprintln!("Recieved UDP packet from {:?}", origin);
 
                     if address.send(Box::from(&buffer[..n])).await.is_err() {
-                        return
+                        return;
                     }
                 }
                 Ok(Err(err)) => {
@@ -157,7 +174,7 @@ async fn read_udp(socket: Arc<UdpSocket>, mut addr: impl api::Address) {
                 eprintln!("IO error: {}", e);
                 return;
             }
-            Err(_) => return // timeout, assume the UDP session is end
+            Err(_) => return, // timeout, assume the UDP session is end
         }
     }
 }

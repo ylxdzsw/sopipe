@@ -1,20 +1,23 @@
-use std::{collections::BTreeSet, sync::atomic::AtomicU32};
+use std::{
+    collections::BTreeSet,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
-mod script;
 mod runtime;
+mod script;
 
 type R = runtime::RuntimeHandler;
 
 struct Counter(&'static AtomicU32);
 impl Counter {
     fn new(a: &'static AtomicU32) -> Self {
-        a.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        a.fetch_add(1, Ordering::Relaxed);
         Counter(a)
     }
 }
 impl Drop for Counter {
     fn drop(&mut self) {
-        self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+        self.0.fetch_sub(1, Ordering::Relaxed);
     }
 }
 
@@ -24,12 +27,21 @@ struct Node {
     backward_actor: &'static dyn api::Actor<R>,
     outputs: &'static [usize],
 
-    task_count: AtomicU32
+    task_count: AtomicU32,
 }
 
 impl Node {
-    fn new(forward_actor: &'static dyn api::Actor<R>, backward_actor: &'static dyn api::Actor<R>, outputs: &'static [usize]) -> Self {
-        Self { forward_actor, backward_actor, outputs, task_count: Default::default() }
+    fn new(
+        forward_actor: &'static dyn api::Actor<R>,
+        backward_actor: &'static dyn api::Actor<R>,
+        outputs: &'static [usize],
+    ) -> Self {
+        Self {
+            forward_actor,
+            backward_actor,
+            outputs,
+            task_count: Default::default(),
+        }
     }
 }
 
@@ -39,28 +51,31 @@ fn main() {
 
     // TODO: use https://github.com/dtolnay/inventory to register the plugins?
 
-    #[cfg(feature="drop")]
+    #[cfg(feature = "drop")]
     components.push(drop::init());
 
-    #[cfg(feature="echo")]
+    #[cfg(feature = "echo")]
     components.push(echo::init());
 
-    #[cfg(feature="exec")]
+    #[cfg(feature = "exec")]
     components.push(exec::init());
 
-    #[cfg(feature="socks5")]
+    #[cfg(feature = "socks5")]
     components.push(socks5::init());
 
-    #[cfg(feature="stdio")]
+    #[cfg(feature = "stdio")]
     components.push(stdio::init());
 
-    #[cfg(feature="xor")]
+    #[cfg(feature = "xor")]
     components.push(xor::init());
 
-    #[cfg(feature="tcp")]
+    #[cfg(feature = "tcp")]
     components.push(tcp::init());
 
-    #[cfg(feature="udp")]
+    #[cfg(feature = "throttle")]
+    components.push(throttle::init());
+
+    #[cfg(feature = "udp")]
     components.push(udp::init());
 
     let args: Vec<_> = std::env::args().collect();
@@ -78,14 +93,15 @@ fn main() {
     tokio_rt.block_on(async move {
         runtime.set_run_level(api::RunLevel::Init);
 
-        let non_source: BTreeSet<_> = nodes.iter()
-            .flat_map(|x| x.outputs.iter())
-            .copied().collect();
+        let non_source: BTreeSet<_> = nodes.iter().flat_map(|x| x.outputs.iter()).copied().collect();
         for (i, x) in nodes.iter().enumerate() {
             if non_source.contains(&i) {
-                continue
+                continue;
             }
-            assert_eq!(x.forward_actor as *const _ as *const u8, x.backward_actor as *const _ as *const u8);
+            assert_eq!(
+                x.forward_actor as *const _ as *const u8,
+                x.backward_actor as *const _ as *const u8
+            );
             runtime.spawn_source(x)
         }
 
@@ -96,8 +112,10 @@ fn main() {
         tokio::spawn(async {
             tokio::signal::ctrl_c().await.unwrap();
             runtime.set_run_level(api::RunLevel::Shut);
-            eprintln!("SIGINT recieved. Stoping accepting new connections.\n\
-                       Waiting for exiting tasks. Press Ctrl+C again to force exit.");
+            eprintln!(
+                "SIGINT recieved. Stoping accepting new connections.\n\
+                       Waiting for exiting tasks. Press Ctrl+C again to force exit."
+            );
 
             tokio::signal::ctrl_c().await.unwrap();
             eprintln!("SIGINT recieved. Aborting.");
@@ -105,9 +123,8 @@ fn main() {
         });
 
         // Silently exit when no task runinng. Long-running tasks like tcp listening won't die unless runlevel enters Shut.
-        while nodes.iter().any(|node| node.task_count.load(std::sync::atomic::Ordering::Relaxed) != 0) {
+        while nodes.iter().any(|node| node.task_count.load(Ordering::Relaxed) != 0) {
             tokio::time::sleep(tokio::time::Duration::from_millis(20)).await
         }
     });
 }
-

@@ -159,7 +159,7 @@ async fn read_tcp(mut stream: impl AsyncReadExt + Unpin, mut addr: impl api::Add
     loop {
         match stream.read(&mut buffer[..]).await {
             Ok(0) => return, // EOF
-            Ok(n) => if addr.send(buffer[..n].iter().copied().collect()).await.is_err() {
+            Ok(n) => if addr.send(Box::from(&buffer[..n])).await.is_err() {
                 return
             }
             Err(e) => {
