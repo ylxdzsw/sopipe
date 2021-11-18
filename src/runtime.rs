@@ -1,4 +1,4 @@
-use std::{future::Future, sync::atomic::AtomicU8};
+use std::{future::Future, pin::Pin, sync::atomic::AtomicU8};
 
 use super::{Counter, Node};
 
@@ -26,7 +26,7 @@ impl Runtime {
 pub struct Address(tokio::sync::mpsc::Sender<Box<[u8]>>);
 
 impl api::Address for Address {
-    fn send(&mut self, msg: Box<[u8]>) -> std::pin::Pin<Box<dyn std::future::Future<Output=Result<(), ()>> + Send + '_>> {
+    fn send(&mut self, msg: Box<[u8]>) -> Pin<Box<dyn Future<Output=Result<(), ()>> + Send + '_>> {
         Box::pin(async { self.0.send(msg).await.map_err(|_| ()) })
     }
 }
@@ -35,7 +35,7 @@ pub struct Mailbox(tokio::sync::mpsc::Receiver<Box<[u8]>>);
 
 impl api::Mailbox for Mailbox {
     #[allow(clippy::type_complexity)]
-    fn recv(&mut self) -> std::pin::Pin<Box<dyn std::future::Future<Output=Option<Box<[u8]>>> + Send + '_>> {
+    fn recv(&mut self) -> Pin<Box<dyn Future<Output=Option<Box<[u8]>>> + Send + '_>> {
         Box::pin(self.0.recv())
     }
 }
@@ -81,12 +81,12 @@ impl api::Runtime for RuntimeHandler {
     }
 
     fn channel(&self) -> (Self::Address, Self::Mailbox) {
-        // TODO: componenets give hints about buffer size, so that fast components (like xor) don't increase the overal buffer in the stack
+        // TODO: componenets give hints about buffer size, so that fast components (like xor) don't increase the overal buffer in the pipeline
         let (tx, rx) = tokio::sync::mpsc::channel(4);
         (Address(tx), Mailbox(rx))
     }
 
-    fn spawn_task<F: std::future::Future + Send + 'static>(&self, task: F) where F::Output: Send {
+    fn spawn_task<F: Future + Send + 'static>(&self, task: F) where F::Output: Send {
         tokio::spawn(async {
             let _c = Counter::new(&self.node.task_count); // use Drop in case of panic
             task.await;

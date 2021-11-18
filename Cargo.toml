@@ -16,11 +16,12 @@ exec = { path = "components/exec", optional = true }
 socks5 = { path = "components/socks5", optional = true }
 stdio = { path = "components/stdio", optional = true }
 tcp = { path = "components/tcp", optional = true }
+udp = { path = "components/udp", optional = true }
 xor = { path = "components/xor", optional = true }
 
 [features]
 # core includes most endpoints. It serves as the basis for "slim" builds.
-core = ["tcp", "stdio", "exec"]
+core = ["tcp", "udp", "stdio", "exec"]
 
 # default includes most common components that supports static linking.
 default = ["core", "xor", "echo", "socks5", "drop"]

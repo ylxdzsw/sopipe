@@ -60,6 +60,9 @@ fn main() {
     #[cfg(feature="tcp")]
     components.push(tcp::init());
 
+    #[cfg(feature="udp")]
+    components.push(udp::init());
+
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 2 {
         println!("Usage: sopipe <script>");
