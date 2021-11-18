@@ -115,7 +115,7 @@ fn pipe_exec(runtime: impl api::Runtime, mut child: tokio::process::Child, mut a
 
     runtime.spawn_task(async move {
         let _alive = child_rc_2;
-        let mut buf = vec![0; 1024];
+        let mut buf = vec![0; 65536];
         loop {
             match child_stdout.read(&mut buf).await {
                 Ok(0) => return, // EOF
