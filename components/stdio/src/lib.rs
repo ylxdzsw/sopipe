@@ -20,7 +20,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
         #[derive(Debug, Deserialize)]
         #[serde(crate="api::serde")]
         struct Config<'a> {
-            outputs: Vec<String>,
+            outputs: Vec<&'a str>,
             function_name: &'a str,
             #[serde(default)]
             no_flush: bool,

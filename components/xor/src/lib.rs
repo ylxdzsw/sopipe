@@ -13,10 +13,8 @@ impl<R: api::Runtime> api::Component<R> for Component {
         #[serde(crate="api::serde")]
         struct Config<'a> {
             key: &'a str,
-            outputs: Vec<String>,
+            outputs: Vec<&'a str>,
             function_name: &'a str,
-            #[serde(default)]
-            read_only: bool,
         }
 
         let config: Config = api::parse_args(&arguments).unwrap();

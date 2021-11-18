@@ -2,7 +2,7 @@ Sopipe
 ======
 
 Sopipe is socat with middlewares. It can be used for NAT penetration, secured* and accelerated transmission, tunnelling,
-proxying†, etc. with arbitrarily chained encryption, compression, authentication, and error correction.
+port forwarding, proxying†, etc. with arbitrarily chained encryption, compression, authentication, and error correction.
 
 \* Sopipe has not got security review. The encryption-related components should be used at one's own risk. <br>
 † Sopipe is not designed for circumventing censorship. The authors and contributors do not take any responsibility for
@@ -11,11 +11,92 @@ abuse or misuse of this software.
 ## Installation
 
 Download the latest release at [the relase page](https://github.com/ylxdzsw/sopipe/releases) and drop it anywhere.
-Sopipe is a single static linked binary that does not read or generate any file unless explicitly told.
+Sopipe is a single static linked binary that does not read or generate any file unless explicitly scripted.
+
+## Usage
+
+### Cli
+
+Sopipe expects one and only one argument: the input script. The behaviour of sopipe is controlled solely by the script.
+No commandline options are provided.
+
+Shell tips: use single quote for the script so you don't need to escape the quotes and `!!` operations. For example:
+
+```sh
+sopipe 'stdin => exec("tee", "record.txt") !! drop => stdout'
+```
+
+If the script is long and saved in a file, you can use some shell tricks:
+
+```sh
+sopipe "$(< script.txt)"
+```
+
+### Script
+
+Sopipe uses an [extreamly simple DSL](https://github.com/ylxdzsw/sopipe/blob/master/src/script.pest) to describe the
+pipeline. Take a look at [the examples](https://github.com/ylxdzsw/sopipe#gallery) to get a sense of it.
+
+A "function call" defines a node, and `=>` operators are used to connect the nodes. The arguments of a node can have
+three forms: key-value pair, key-only, or value-only. If no arguments are needed, the parentheses can be omitted too.
+`!!` operators can used to composite two nodes, such that the one on the left is used for forwarding and the other for
+backwarding.
+
+The `:=` operator can be used to bind a node to a name. This is necessary for some nodes that expect multiple outputs.
+The user-defined names should start with `$` by convention. If the RHS of the `:=` operation is a pipe (`=>`), the last
+node in the pipe is bind to the name.
+
+## Modules
+
+Currently the following components are avaliable. More to come™.
+
+#### Endpoints
+
+- [tcp]: Listen to a tcp port or send to a (remote) tcp port. If the stream is directed (e.g. produced by
+  `socks5_server`), the output `tcp` node don't need arguments about destination.
+- [udp]: Similar to `tcp` but for UDP.
+- [stdio]: Read or write to the STDIN / STDOUT. Great for testing.
+
+[tcp]: https://github.com/ylxdzsw/sopipe/tree/master/components/tcp
+[udp]: https://github.com/ylxdzsw/sopipe/tree/master/components/udp
+[stdio]: https://github.com/ylxdzsw/sopipe/tree/master/components/stdio
+
+#### Proxying
+
+- [socks5]: The [SOCKS protocol](https://tools.ietf.org/html/rfc1928).
+
+[socks5]: https://github.com/ylxdzsw/sopipe/tree/master/components/socks5
+
+#### Authentication
+
+- [auth]: A simple authentication components based on MAC. It has two methods: *time* (default) and *challenge*. In the
+  *time* method, the client sends the current timestamp and MAC for verification. In the *challenge* method, the server
+  actively sends a nounce and the client replies with MAC.
+
+[auth]: https://github.com/ylxdzsw/sopipe/tree/master/components/auth
+
+#### Encryption
+
+- [xor]: Not really encrypt, but `xor` the stream with a fixed key.
+
+[xor]: https://github.com/ylxdzsw/sopipe/tree/master/components/xor
+
+#### Scripting / Debugging
+
+- [exec]: Spawn an external process and connects to its STDIO. This allows integrate virtually anything with substantial
+  performance penalty.
+- [throttle]: Limit the flow rate like packets per second, byte per second, or randomly drop packets.
+- [drop]: Discard whatever received.
+- [echo]: Reply whatever received.
+
+[exec]: https://github.com/ylxdzsw/sopipe/tree/master/components/exec
+[throttle]: https://github.com/ylxdzsw/sopipe/tree/master/components/throttle
+[drop]: https://github.com/ylxdzsw/sopipe/tree/master/components/drop
+[echo]: https://github.com/ylxdzsw/sopipe/tree/master/components/echo
 
 ## Performance
 
-A micro benchmark about the local tcp port forwarding performance using `iperf3`.
+A micro benchmark about the local tcp port forwarding throughput using `iperf3`.
 
 ```sh
 iperf3 -s

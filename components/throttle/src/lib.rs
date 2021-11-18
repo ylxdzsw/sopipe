@@ -30,7 +30,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
 
             interval: Option<u64>, // ms
 
-            outputs: Vec<String>,
+            outputs: Vec<&'a str>,
             function_name: &'a str,
         }
 

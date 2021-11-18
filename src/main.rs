@@ -51,6 +51,9 @@ fn main() {
 
     // TODO: use https://github.com/dtolnay/inventory to register the plugins?
 
+    #[cfg(feature = "auth")]
+    components.push(auth::init());
+
     #[cfg(feature = "drop")]
     components.push(drop::init());
 
