@@ -54,6 +54,9 @@ fn main() {
     #[cfg(feature = "auth")]
     components.push(auth::init());
 
+    #[cfg(feature = "balance")]
+    components.push(balance::init());
+
     #[cfg(feature = "drop")]
     components.push(drop::init());
 
