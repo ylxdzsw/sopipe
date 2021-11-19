@@ -10,7 +10,7 @@ mod metadata;
 pub use metadata::MetaData;
 
 mod runtime;
-pub use runtime::{Runtime, Address, Mailbox, RunLevel};
+pub use runtime::{Runtime, Address, Mailbox, RunLevel, pass};
 
 #[allow(unused_variables)]
 pub trait Actor<R: Runtime>: Sync {

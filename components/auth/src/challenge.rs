@@ -5,8 +5,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(key: &'static [u8]) -> Self {
-        Self { key }
+    pub fn new(key: ring::hmac::Key) -> Self {
+        todo!()
     }
 }
 
@@ -26,8 +26,8 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(key: &'static [u8]) -> Self {
-        Self { key }
+    pub fn new(key: ring::hmac::Key) -> Self {
+        todo!()
     }
 }
 

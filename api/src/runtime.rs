@@ -45,3 +45,19 @@ pub trait Runtime: Sync + Send + Sized + 'static {
     /// There is no edge events for the change. Componenets should regularly check it.
     fn get_runlevel(&self) -> RunLevel;
 }
+
+/// directly pass mails to address. May be implemented more efficiently (e.g. reconnect the pipes to eliminate the task) in the future.
+pub async fn pass(address: Option<impl Address>, mailbox: Option<impl Mailbox>) {
+    if mailbox.is_none() {
+        return
+    }
+
+    let mut address = address.unwrap();
+    let mut mailbox = mailbox.unwrap();
+
+    while let Some(mail) = mailbox.recv().await {
+        if address.send(mail).await.is_err() {
+            break
+        }
+    }
+}
