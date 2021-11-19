@@ -75,6 +75,9 @@ fn main() {
     #[cfg(feature = "tcp")]
     components.push(tcp::init());
 
+    #[cfg(feature = "tee")]
+    components.push(tee::init());
+
     #[cfg(feature = "throttle")]
     components.push(throttle::init());
 

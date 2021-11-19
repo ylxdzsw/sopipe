@@ -17,6 +17,7 @@ exec = { path = "components/exec", optional = true }
 socks5 = { path = "components/socks5", optional = true }
 stdio = { path = "components/stdio", optional = true }
 tcp = { path = "components/tcp", optional = true }
+tee = { path = "components/tee", optional = true }
 throttle = { path = "components/throttle", optional = true }
 udp = { path = "components/udp", optional = true }
 xor = { path = "components/xor", optional = true }
@@ -26,6 +27,6 @@ xor = { path = "components/xor", optional = true }
 core = ["tcp", "udp", "stdio", "exec"]
 
 # default includes most common components that supports static linking.
-default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth"]
+default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee"]
 
 [workspace]

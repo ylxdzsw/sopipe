@@ -86,11 +86,15 @@ Currently the following components are avaliable. More to come™.
 - [exec]: Spawn an external process and connects to its STDIO. This allows integrate virtually anything with substantial
   performance penalty.
 - [throttle]: Limit the flow rate like packets per second, byte per second, or randomly drop packets.
+- [tee]: broadcast to all outputs.
+- [balance]: choose one output for each stream. This has the "any" semantic while `tee` is "all".
 - [drop]: Discard whatever received.
 - [echo]: Reply whatever received.
 
 [exec]: https://github.com/ylxdzsw/sopipe/tree/master/components/exec
 [throttle]: https://github.com/ylxdzsw/sopipe/tree/master/components/throttle
+[tee]: https://github.com/ylxdzsw/sopipe/tree/master/components/tee
+[balance]: https://github.com/ylxdzsw/sopipe/tree/master/components/balance
 [drop]: https://github.com/ylxdzsw/sopipe/tree/master/components/drop
 [echo]: https://github.com/ylxdzsw/sopipe/tree/master/components/echo
 
