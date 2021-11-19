@@ -9,7 +9,8 @@ struct Component;
 pub struct Actor {
     addr: Option<String>,
     port: Option<u16>,
-    has_output: bool
+    has_output: bool,
+    once: bool
 }
 
 #[allow(dead_code)]
@@ -19,6 +20,9 @@ struct Config {
     #[serde(default)]
     addr: api::Argument,
     port: Option<u16>,
+
+    #[serde(default)]
+    once: bool,
 
     outputs: Vec<String>,
     function_name: String,
@@ -66,7 +70,8 @@ impl Actor {
                 0 => false,
                 1 => true,
                 _ => panic!("tcp can only accept one output")
-            }
+            },
+            once: config.once
         }
     }
 }
@@ -144,6 +149,10 @@ impl Actor {
                     runtime.spawn_next(0, meta, backward_address, forward_mailbox);
                     runtime.spawn_task(read_tcp(reader, forward_address));
                     runtime.spawn_task(write_tcp(writer, backward_mailbox));
+
+                    if self.once {
+                        return
+                    }
                 },
                 Ok(Err(err)) => {
                     eprintln!("accept error = {}", err)
