@@ -32,6 +32,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
             panic!("auth must have exactly 1 output")
         }
 
+        // is it really necessary given that the plain text sits in the argv?
         let salt = config.salt.map(|x| x.as_bytes()).unwrap_or(b"sopipe_is_good");
         let key = derive_key(salt, config.key.as_bytes());
 

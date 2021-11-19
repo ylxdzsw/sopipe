@@ -10,7 +10,7 @@ abuse or misuse of this software.
 
 ## Installation
 
-Download the latest release at [the relase page](https://github.com/ylxdzsw/sopipe/releases) and drop it anywhere.
+Download the latest release at [the release page](https://github.com/ylxdzsw/sopipe/releases) and drop it anywhere.
 Sopipe is a single static linked binary that does not read or generate any file unless explicitly scripted.
 
 ## Usage
@@ -55,7 +55,7 @@ Currently the following components are avaliable. More to come™.
 - [tcp]: Listen to a tcp port or send to a (remote) tcp port. If the stream is directed (e.g. produced by
   `socks5_server`), the output `tcp` node don't need arguments about destination.
 - [udp]: Similar to `tcp` but for UDP.
-- [stdio]: Read or write to the STDIN / STDOUT. Great for testing.
+- [stdio]: Read or write to STDIN / STDOUT.
 
 [tcp]: https://github.com/ylxdzsw/sopipe/tree/master/components/tcp
 [udp]: https://github.com/ylxdzsw/sopipe/tree/master/components/udp
@@ -69,9 +69,9 @@ Currently the following components are avaliable. More to come™.
 
 #### Authentication
 
-- [auth]: A simple authentication components based on MAC. It has two methods: *time* (default) and *challenge*. In the
-  *time* method, the client sends the current timestamp and MAC for verification. In the *challenge* method, the server
-  actively sends a nounce and the client replies with MAC.
+- [auth]: A simple authentication components based on preshared keys and MAC. It has two methods: *time* (default) and
+  *challenge*. In the *time* method, the client sends the current timestamp and MAC for verification. In the *challenge*
+  method, the server actively sends a nounce and the client replies with MAC.
 
 [auth]: https://github.com/ylxdzsw/sopipe/tree/master/components/auth
 

@@ -1,4 +1,4 @@
-//! time-based authentication. The client send the current time (must be unique) together with MAC code for verification
+//! time-based authentication. The client send the current time (must be monotonic and unique) together with MAC code for verification
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
