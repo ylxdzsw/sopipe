@@ -29,7 +29,7 @@ impl Node {
 enum CNode {
     Single {
         node: Node,
-        outputs: Vec<usize>,
+        outputs: Vec<(usize, String)>,
     },
     Composite {
         forward: Node,
@@ -137,15 +137,38 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component<R>]) 
                     }
                 }
             }
+            Rule::ident => {
+                if let SymbolValue::CNode(cnode) = &symbol_table[pair.as_str()] {
+                    *cnode
+                } else {
+                    panic!("not a node")
+                }
+            }
             Rule::pipe => {
                 let mut last: Option<CNodeIndex> = None;
+                let mut output_name: Option<String> = None;
                 for pair in pair.into_inner() {
+                    let pair = if let Rule::dotted = pair.as_rule() {
+                        assert!(last.is_none());
+                        let mut pairs = pair.into_inner();
+                        let first = pairs.next().unwrap();
+                        let second = pairs.next().unwrap();
+                        output_name = Some(second.as_str().to_string());
+                        first
+                    } else {
+                        pair
+                    };
+
                     let cnode_index = eval(symbol_table, cnodes, pair);
                     if let Some(p) = last {
                         match &mut *cnodes[p].borrow_mut() {
-                            CNode::Single { outputs, .. } => outputs.push(cnode_index),
+                            CNode::Single { outputs, .. } => {
+                                let name = output_name.take().unwrap_or_default();
+                                outputs.push((cnode_index, name))
+                            }
                             CNode::Composite { output, .. } => {
                                 assert!(output.is_none());
+                                assert!(output_name.is_none());
                                 *output = Some(cnode_index)
                             }
                         }
@@ -194,7 +217,7 @@ pub(crate) fn load_script(code: &str, components: &[&'static dyn Component<R>]) 
         .into_iter()
         .map(|cnode| match cnode.into_inner() {
             CNode::Single { node, outputs } => {
-                let output_names: Vec<_> = outputs.iter().map(|_| "".to_string()).collect();
+                let (outputs, output_names): (Vec<_>, Vec<_>) = outputs.into_iter().unzip();
                 let actor = Box::leak(node.build(output_names));
                 super::Node::new(actor, actor, outputs.leak())
             }

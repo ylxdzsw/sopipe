@@ -17,9 +17,11 @@ args = { arg ~ ("," ~ arg)* }
 
 node = { ident ~ ("(" ~ args? ~ ")")? }
 
+dotted = ${ ident ~ "." ~ ident }
+
 cnode = { node ~ ("!!" ~ node)? }
 
-pipe = { cnode ~ ("=>" ~ cnode)* }
+pipe = { (dotted | cnode) ~ ("=>" ~ cnode)* }
 
 stmt = { assignment | pipe }
 
