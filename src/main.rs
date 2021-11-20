@@ -102,9 +102,9 @@ fn main() {
     tokio_rt.block_on(async move {
         runtime.set_run_level(api::RunLevel::Init);
 
-        let non_source: BTreeSet<_> = nodes.iter().flat_map(|x| x.outputs.iter()).copied().collect();
+        let not_source: BTreeSet<_> = nodes.iter().flat_map(|x| x.outputs.iter()).copied().collect();
         for (i, x) in nodes.iter().enumerate() {
-            if non_source.contains(&i) {
+            if not_source.contains(&i) {
                 continue;
             }
             assert_eq!(

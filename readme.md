@@ -42,9 +42,8 @@ three forms: key-value pair, key-only, or value-only. If no arguments are needed
 `!!` operators can used to composite two nodes, such that the one on the left is used for forwarding and the other for
 backwarding.
 
-The `:=` operator can be used to bind a node to a name. This is necessary for some nodes that expect multiple outputs.
-The user-defined names should start with `$` by convention. If the RHS of the `:=` operation is a pipe (`=>`), the last
-node in the pipe is bind to the name.
+`:=` operator binds a node to a name. This is necessary for some nodes that expect multiple outputs. The RHS of the `:=`
+operation can be a pipe `=>`, in which case the last node in the pipe is bind to the name.
 
 ## Modules
 
@@ -83,11 +82,11 @@ Currently the following components are avaliable. More to come™.
 
 #### Scripting / Debugging
 
-- [exec]: Spawn an external process and connects to its STDIO. This allows integrate virtually anything with substantial
-  performance penalty.
+- [exec]: Spawn an external process and connect to its STDIN / STDOUT. This allows integrating virtually anything with
+  substantial performance penalty.
 - [throttle]: Limit the flow rate like packets per second, byte per second, or randomly drop packets.
-- [tee]: broadcast to all outputs.
-- [balance]: choose one output for each stream. This has the "any" semantic while `tee` is "all".
+- [tee]: Broadcast to all outputs.
+- [balance]: Choose one output for each stream. This has the "any" semantic while `tee` is "all".
 - [drop]: Discard whatever received.
 - [echo]: Reply whatever received.
 

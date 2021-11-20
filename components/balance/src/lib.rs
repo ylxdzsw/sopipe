@@ -1,6 +1,6 @@
 use std::sync::atomic::AtomicU64;
 
-use api::{Address, Mailbox, serde::Deserialize};
+use api::serde::Deserialize;
 
 struct Component;
 
