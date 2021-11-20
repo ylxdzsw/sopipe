@@ -8,7 +8,6 @@ struct Actor {
 
 impl<R: api::Runtime> api::Component<R> for Component {
     fn create(&'static self, arguments: Vec<(String, api::Argument)>) -> Box<dyn api::Actor<R>> {
-        println!("{:?}", arguments.iter().find(|(name, _)| name == "outputs").unwrap().1.as_vec().unwrap());
         let n_outputs = arguments.iter().find(|(name, _)| name == "outputs").unwrap().1.as_vec().unwrap().len();
         assert!(n_outputs >= 1);
         Box::new(Actor { n_outputs })

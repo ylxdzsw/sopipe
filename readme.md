@@ -45,6 +45,11 @@ backwarding.
 `:=` operator binds a node to a name. This is necessary for some nodes that expect multiple outputs. The RHS of the `:=`
 operation can be a pipe `=>`, in which case the last node in the pipe is bind to the name.
 
+`$a.b => foo()` connects `$a` and `foo()` with a specific name `b`. Some components use names to recognize the
+function of each output. Named outputs can also be specified inline. For example, `foo(.b => bar()) => baz()` will connect
+a `foo` component with two outputs, one is `bar()` with the name `b`, and the other is `baz()`. Anonymous outputs can
+also be inlined with only a dot. For example, `stdio => tee(. => tcp(2000), . => tcp(2001))`.
+
 ## Modules
 
 Currently the following components are avaliable. More to come™.
