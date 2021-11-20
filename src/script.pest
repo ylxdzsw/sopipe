@@ -11,17 +11,19 @@ ident_char = _{ 'a'..'z' | 'A'..'Z' | '0'..'9' | "_" }
 
 lit = { string | int }
 
-arg = { lit | ( ident ~ ("=" ~ lit)? )  }
+arg = { ipipe | lit | ( ident ~ ("=" ~ lit)? )  }
 
-args = { arg ~ ("," ~ arg)* }
+args = { arg ~ ("," ~ arg)* ~ ","? }
 
 node = { ident ~ ("(" ~ args? ~ ")")? }
 
 dotted = ${ ident ~ "." ~ ident }
+idotted = ${ "." ~ ident? }
 
 cnode = { node ~ ("!!" ~ node)? }
 
 pipe = { (dotted | cnode) ~ ("=>" ~ cnode)* }
+ipipe = { idotted ~ ("=>" ~ cnode)+ }
 
 stmt = { assignment | pipe }
 

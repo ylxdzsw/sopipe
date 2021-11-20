@@ -93,7 +93,7 @@ fn main() {
         std::process::exit(0);
     }
 
-    let nodes: &_ = script::load_script(&args[1], &components).leak();
+    let nodes: &_ = script::Interpreter::load_script(&args[1], &components).leak();
 
     let runtime = Box::leak(Box::new(runtime::Runtime::new(nodes)));
 
