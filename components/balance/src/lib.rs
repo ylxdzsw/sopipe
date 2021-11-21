@@ -37,6 +37,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["balance"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "balance"
+    }
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {

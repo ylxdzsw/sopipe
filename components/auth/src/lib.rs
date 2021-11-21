@@ -54,6 +54,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["auth_client", "auth_server"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "auth"
+    }
 }
 
 fn derive_key(salt: &[u8], pass: &[u8]) -> ring::hmac::Key {

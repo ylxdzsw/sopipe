@@ -48,6 +48,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["stdin", "stdout", "stdio"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "stdio"
+    }
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {

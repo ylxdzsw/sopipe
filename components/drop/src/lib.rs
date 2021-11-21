@@ -12,6 +12,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["drop"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "drop"
+    }
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {

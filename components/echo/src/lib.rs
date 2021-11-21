@@ -13,6 +13,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["echo"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "echo"
+    }
 }
 
 impl<R: api::Runtime> api::Actor<R> for Actor {

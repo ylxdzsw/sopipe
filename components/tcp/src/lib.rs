@@ -58,6 +58,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["tcp"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "tcp"
+    }
 }
 
 impl Actor {
@@ -189,65 +193,4 @@ async fn write_tcp(mut stream: impl AsyncWriteExt + Unpin, mut mail: impl api::M
 
 pub fn init<R: api::Runtime>() -> &'static dyn api::Component<R> {
     &Component {}
-}
-
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn get_addr_and_port() {
-        let args = [
-            ("".into(), "127.0.0.1".to_string().into()),
-            ("outputs".into(), ["".to_string()].into_iter().collect()),
-            ("function_name".into(), "tcp".to_string().into())
-        ];
-        let config: Config = api::parse_args(&args).unwrap();
-        let (addr, port) = config.get_addr_and_port();
-        assert_eq!(addr, Some("127.0.0.1".parse().unwrap()));
-        assert_eq!(port, None);
-
-        let args = [
-            ("".into(), "127.0.0.1:8888".to_string().into()),
-            ("outputs".into(), ["".to_string()].into_iter().collect()),
-            ("function_name".into(), "tcp".to_string().into())
-        ];
-        let config: Config = api::parse_args(&args).unwrap();
-        let (addr, port) = config.get_addr_and_port();
-        assert_eq!(addr, Some("127.0.0.1".parse().unwrap()));
-        assert_eq!(port, Some(8888));
-
-        let args = [
-            ("".into(), 8888.into()),
-            ("outputs".into(), ["".to_string()].into_iter().collect()),
-            ("function_name".into(), "tcp".to_string().into())
-        ];
-        let config: Config = api::parse_args(&args).unwrap();
-        let (addr, port) = config.get_addr_and_port();
-        assert_eq!(addr, None);
-        assert_eq!(port, Some(8888));
-
-        let args = [
-            ("port".into(), 8888.into()),
-            ("".into(), "127.0.0.1".to_string().into()),
-            ("outputs".into(), ["".to_string()].into_iter().collect()),
-            ("function_name".into(), "tcp".to_string().into())
-        ];
-        let config: Config = api::parse_args(&args).unwrap();
-        let (addr, port) = config.get_addr_and_port();
-        assert_eq!(addr, Some("127.0.0.1".parse().unwrap()));
-        assert_eq!(port, Some(8888));
-
-        let args = [
-            ("".into(), 8888.into()),
-            ("".into(), "127.0.0.1".to_string().into()),
-            ("outputs".into(), ["".to_string()].into_iter().collect()),
-            ("function_name".into(), "tcp".to_string().into())
-        ];
-        let config: Config = api::parse_args(&args).unwrap();
-        let (addr, port) = config.get_addr_and_port();
-        assert_eq!(addr, Some("127.0.0.1".parse().unwrap()));
-        assert_eq!(port, Some(8888));
-    }
 }

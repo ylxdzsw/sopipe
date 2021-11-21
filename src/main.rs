@@ -72,9 +72,6 @@ fn main() {
     #[cfg(feature = "stdio")]
     components.push(stdio::init());
 
-    #[cfg(feature = "xor")]
-    components.push(xor::init());
-
     #[cfg(feature = "tcp")]
     components.push(tcp::init());
 
@@ -87,9 +84,15 @@ fn main() {
     #[cfg(feature = "udp")]
     components.push(udp::init());
 
+    #[cfg(feature = "xor")]
+    components.push(xor::init());
+
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 2 {
-        println!("Usage: sopipe <script>");
+        print!("Sopipe {}", option_env!("CARGO_PKG_VERSION").unwrap_or_default());
+        for comp in components.iter() {
+            print!(" {}", comp.name())
+        }
         std::process::exit(0);
     }
 

@@ -30,6 +30,10 @@ impl<R: api::Runtime> api::Component<R> for Component {
     fn functions(&self) -> &'static [&'static str] {
         &["socks5_server", "socks5_client"]
     }
+
+    fn name(&'static self) -> &'static str {
+        "socks5"
+    }
 }
 
 pub fn init<R: api::Runtime>() -> &'static dyn api::Component<R> {

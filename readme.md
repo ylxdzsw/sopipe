@@ -33,6 +33,8 @@ If the script is long and saved in a file, you can use some shell tricks:
 sopipe "$(< script.txt)"
 ```
 
+Run sopipe with empty argument will print the version and enabled features.
+
 ### Script
 
 Sopipe uses an [extreamly simple DSL](https://github.com/ylxdzsw/sopipe/blob/master/src/script.pest) to describe the

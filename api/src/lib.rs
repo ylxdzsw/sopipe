@@ -32,6 +32,9 @@ pub trait Actor<R: Runtime>: Sync {
 
 /// The main trait for components.
 pub trait Component<R: Runtime>: Sync {
+    /// get the componenet name
+    fn name(&'static self) -> &'static str;
+
     /// get the name of functions this component registers
     fn functions(&'static self) -> &'static [&'static str];
 
