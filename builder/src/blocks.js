@@ -1,17 +1,13 @@
 export default function load_blocks(Blockly) {
-    const dynamic_inputs_mixin = (special_names=[]) => ({
-        inputCounter: 0, // used to give each input a unique name
-        minInputs: 1 + special_names.length,
-
-        init_dynamic_inputs() {
-            if (special_names.length) {
-                for (const special_name in special_names) {
-                    this.appendValueInput(special_name)
-                        .appendField(special_name)
-                }
-            } else {
-                this.appendValueInput(".")
-            }
+    const block_mixin = {
+        init() {
+            this.inputCounter = 1, // used to give each input a unique name
+            this.appendValueInput("arg_0").appendField(this.name)
+            this.setHelpUrl(`https://github.com/ylxdzsw/sopipe/tree/master/components/${this.comp_name || this.name}`)
+            this.tooltip && this.setTooltip(this.tooltip)
+            this.setColour(this.color)
+            this.setNextStatement(true)
+            this.setPreviousStatement(true)
         },
 
         mutationToDom() {
@@ -28,11 +24,7 @@ export default function load_blocks(Blockly) {
                 const inputNames = items.split(',')
                 this.inputList = []
                 inputNames.forEach((name) => this.appendValueInput(name))
-                for (let i = 0; i < special_names.length; i++) {
-                    if (i < this.inputList.length) {
-                        this.inputList[i].appendField(special_names[i])
-                    }
-                }
+                this.inputList[0].appendField(this.name)
             }
             this.inputCounter = parseInt(xmlElement.getAttribute('inputCounter'))
         },
@@ -67,37 +59,41 @@ export default function load_blocks(Blockly) {
             if (insertIndex == null) {
                 return
             }
-            this.appendValueInput('.' + (this.inputCounter++)) // TODO: add a editable field to specify the name?
+            this.appendValueInput(`arg_${this.inputCounter++}`)
             this.moveNumberedInputBefore(this.inputList.length - 1, insertIndex)
         },
 
         finalizeConnections() {
-            if (this.inputList.length > this.minInputs) {
+            if (this.inputList.length > 1) {
                 this.inputList
-                    .slice(this.minInputs)
+                    .slice(1)
                     .filter(input => !input.connection.targetConnection)
                     .map(input => this.removeInput(input.name))
             }
         },
-    })
-
-    Blockly.Blocks['tcp'] = {
-        init() {
-            this.setOutput(true)
-            this.setColour(160)
-            this.setTooltip('tcp.')
-            this.setHelpUrl('https://github.com/ylxdzsw/sopipe/tree/master/components/tcp')
-
-            this.appendDummyInput().appendField("Tcp")
-            this.appendValueInput('.next').appendField(".next")
-
-        }
     }
 
-    Blockly.Blocks['sucks'] = {
+    Blockly.Blocks['tcp'] = {
+        name: 'tcp',
+        color: 160,
+        ...block_mixin
+    }
+
+    Blockly.Blocks['xor'] = {
+        name: 'xor',
+        color: 120,
+        ...block_mixin
+    }
+
+    Blockly.Blocks['argument'] = {
         init() {
-            this.init_dynamic_inputs()
-        },
-        ...dynamic_inputs_mixin()
+            this.setColour(20)
+            this.setOutput(true)
+            this.setTooltip('Set an argument.')
+            this.appendDummyInput()
+                .appendField(new Blockly.FieldTextInput("", s => s.replace(/\s/g, '')), "key") // TODO: real sanitizing
+                .appendField("=")
+                .appendField(new Blockly.FieldTextInput(""), "value")
+        }
     }
 }
