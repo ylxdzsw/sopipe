@@ -25,7 +25,7 @@ export default function codegen(workspace, compact) {
         }
 
         if (next) {
-            result += compact ? "=>" : " => "
+            result += compact ? "=>" : " =>\n"
             gen(next)
         }
     }

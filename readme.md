@@ -62,6 +62,14 @@ stdio => tee(
 )
 ```
 
+### Blockly Builder
+
+Why write scripts when you can just drag and drop some colorful blocks? Try the builder at
+[https://blog.ylxdzsw.com/sopipe/](https://blog.ylxdzsw.com/sopipe/). Note that the builder is unfinished and not all
+scripts can be built using the builder (e.g. currently it does not support multiple inputs or outputs).
+
+![screenshot of the builder](builder/public/screenshot.png)
+
 ## Modules
 
 Currently the following components are avaliable. More to come™.
