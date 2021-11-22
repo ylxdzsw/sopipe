@@ -1,13 +1,19 @@
 export default function load_blocks(Blockly) {
     const block_mixin = {
         init() {
-            this.inputCounter = 1, // used to give each input a unique name
-            this.appendValueInput("arg_0").appendField(this.name)
+            const n_initial_args = this.default_arg_names ? this.default_arg_names.length : 1
+            this.inputCounter = n_initial_args // used to give each input a unique name
+            for (let i = 0; i < n_initial_args; i++) {
+                const input = this.appendValueInput(`arg_${i}`)
+                if (i == 0) {
+                    input.appendField(this.name)
+                }
+            }
             this.setHelpUrl(`https://github.com/ylxdzsw/sopipe/tree/master/components/${this.comp_name || this.name}`)
             this.tooltip && this.setTooltip(this.tooltip)
             this.setColour(this.color)
-            this.setNextStatement(true)
-            this.setPreviousStatement(true)
+            this.sink_only || this.setNextStatement(true)
+            this.source_only || this.setPreviousStatement(true)
         },
 
         mutationToDom() {
@@ -73,16 +79,70 @@ export default function load_blocks(Blockly) {
         },
     }
 
-    Blockly.Blocks['tcp'] = {
+    const blocks = [{
+        name: 'auth',
+        category: 'Authentication',
+        default_arg_names: ['key', 'salt']
+    }, {
+        name: 'balance',
+        category: 'Trivia',
+    }, {
+        name: 'drop',
+        category: 'Trivia',
+    }, {
+        name: 'echo',
+        sink_only: true,
+        category: 'Trivia',
+    }, {
+        name: 'exec',
+        category: 'Trivia',
+    }, {
+        name: 'socks5_server',
+        comp_name: 'socks5',
+        category: 'Proxying',
+    }, {
+        name: 'stdio',
+        comp_name: 'stdio',
+        category: 'Endpoints',
+    }, {
+        name: 'stdin',
+        comp_name: 'stdio',
+        source_only: true,
+        category: 'Endpoints',
+    }, {
+        name: 'stdout',
+        comp_name: 'stdio',
+        sink_only: true,
+        category: 'Endpoints',
+    }, {
         name: 'tcp',
-        color: 160,
-        ...block_mixin
-    }
-
-    Blockly.Blocks['xor'] = {
+        category: 'Endpoints',
+    }, {
+        name: 'tee',
+        category: 'Trivia',
+    }, {
+        name: 'throttle',
+        category: 'Trivia',
+    }, {
+        name: 'udp',
+        category: 'Endpoints',
+    }, {
         name: 'xor',
-        color: 120,
-        ...block_mixin
+        category: 'Encryption',
+        default_arg_names: ['key']
+    }]
+
+    let color_map = Object.create(null)
+    let next_color = 40
+    for (const block of blocks) {
+        let color = color_map[block.category]
+        if (!color) {
+            color = next_color
+            next_color += 60
+            color_map[block.category] = color
+        }
+
+        Blockly.Blocks[block.name] = { ...block, ...block_mixin, color }
     }
 
     Blockly.Blocks['argument'] = {
@@ -96,4 +156,6 @@ export default function load_blocks(Blockly) {
                 .appendField(new Blockly.FieldTextInput(""), "value")
         }
     }
+
+    return blocks
 }

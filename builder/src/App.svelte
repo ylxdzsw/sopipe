@@ -1,57 +1,63 @@
 <script>
-    import { onMount } from "svelte";
-    import Blockly from "blockly";
-    import DarkTheme from "@blockly/theme-dark";
-    import load_blocks from "./blocks";
-    import codegen from "./codegen";
-    import patch from "./intertion_marker_manager_monkey_patch";
+    import { onMount } from "svelte"
+    import Blockly from "blockly"
+    import DarkTheme from "@blockly/theme-dark"
+    import load_blocks from "./blocks"
+    import codegen from "./codegen"
+    import patch from "./intertion_marker_manager_monkey_patch"
 
     patch(Blockly);
-    load_blocks(Blockly);
+    const blocks = load_blocks(Blockly)
+    // group by category
+    const categories = blocks.reduce((rv, x) => {
+        (rv[x.category] = rv[x.category] || []).push(x)
+        return rv
+    }, {})
+
     onMount(() => {
         Blockly.inject(document.getElementById("blocklyDiv"), {
             theme: DarkTheme,
             toolbox: document.getElementById("toolbox"),
-        });
+        })
 
         Blockly.getMainWorkspace().addChangeListener((e) => {
-            var code = codegen(Blockly.getMainWorkspace(), compact);
-            document.getElementById("output").textContent = code;
-        });
+            var code = codegen(Blockly.getMainWorkspace(), compact)
+            document.getElementById("output").textContent = code
+        })
 
-        window.B = Blockly; // for debugging
-    });
+        window.B = Blockly // for debugging
+    })
 
-    let compact = false;
+    let compact = false
     function on_compact_clicked() {
         compact = !compact
-        var code = codegen(Blockly.getMainWorkspace(), compact);
-        document.getElementById("output").textContent = code;
+        var code = codegen(Blockly.getMainWorkspace(), compact)
+        document.getElementById("output").textContent = code
     }
 </script>
 
 <div id="app">
     <div id="blocklyDiv" />
     <xml id="toolbox" style="display:none">
-        <category name="Endpoints">
-            <block type="tcp" />
-        </category>
-
-        <category name="Encryption">
-            <block type="xor">
-                <value name="arg_0">
-                    <shadow type="argument">
-                        <field name="key">key</field>
-                        <field name="value"></field>
-                    </shadow>
-                </value>
-            </block>
-        </category>
+        {#each Object.entries(categories) as [category, blocks]}
+            <category name="{category}">
+                {#each blocks as block}
+                    <block type="{block.name}">
+                    {#each (block.default_arg_names || []) as arg_name, i}
+                        <value name="arg_{i}">
+                            <shadow type="argument">
+                                <field name="key">{arg_name}</field>
+                                <field name="value"></field>
+                            </shadow>
+                        </value>
+                    {/each}
+                    </block>
+                {/each}
+            </category>
+        {/each}
 
         <category name="Argument">
-            <block type="argument">
-
-            </block>
+            <block type="argument" />
         </category>
     </xml>
     <div id="output" />
@@ -71,25 +77,25 @@
     }
     #blocklyDiv {
         height: 100%;
-        width: 80%;
+        width: 70%;
         position: absolute;
         bottom: 0;
         text-align: left;
     }
     #output {
         height: calc(100% - 20px);
-        width: 20%;
+        width: 30%;
         position: absolute;
         bottom: 0;
         right: 0;
         overflow-y: auto;
         background-color: #333;
         color: #ccc;
-        white-space: pre;
+        white-space: pre-wrap;
     }
     #compact {
         height: 20px;
-        width: 20%;
+        width: 30%;
         min-width: 120px;
         position: absolute;
         right: 0;
