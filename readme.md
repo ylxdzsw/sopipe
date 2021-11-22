@@ -5,7 +5,7 @@ Sopipe is socat with middlewares. It can be used for NAT penetration, secured* a
 port forwarding, proxying<sup>†</sup>, etc. with arbitrarily chained encryption, compression, authentication, and error
 correction.
 
-\* Sopipe has not got security review. The encryption-related components should be used at one's own risk. <br>
+\* Sopipe has not undergone any security review. The encryption-related components should be used at own risk. <br>
 <sup>†</sup> Sopipe is not designed for circumventing censorship. The authors and contributors do not take any
 responsibility for abuse or misuse of this software.
 
@@ -48,10 +48,19 @@ backwarding.
 `:=` operator binds a node to a name. This is necessary for some nodes that expect multiple outputs. The RHS of the `:=`
 operation can be a pipe `=>`, in which case the last node in the pipe is bind to the name.
 
-`$a.b => foo()` connects `$a` and `foo()` with a specific name `b`. Some components use names to recognize the
-function of each output. Named outputs can also be specified inline. For example, `foo(.b => bar()) => baz()` will connect
-a `foo` component with two outputs, one is `bar()` with the name `b`, and the other is `baz()`. Anonymous outputs can
-also be inlined with only a dot. For example, `stdio => tee(. => tcp(2000), . => tcp(2001))`.
+`$a.b => foo()` connects `$a` and `foo()` with a specific name `b`. Some components use names to recognize the role of
+each output. Named outputs can also be specified inline. For example, `foo(.b => bar()) => baz()` will connect a `foo`
+component with two outputs, one is `bar()` with the name `b`, and the other is `baz()`. Anonymous outputs can also be
+inlined with only a dot. For example, `stdio => tee(. => tcp("localhost:2000"), . => tcp("localhost:2001"))`.
+
+All whitespaces `" ", "\t", "\n"` are treated equivalently. So the previous example can be written as:
+
+```
+stdio => tee(
+    . => tcp("localhost:2000"),
+    . => tcp("localhost:2001")
+)
+```
 
 ## Modules
 
@@ -94,7 +103,7 @@ Currently the following components are avaliable. More to come™.
   substantial performance penalty.
 - [throttle]: Limit the flow rate like packets per second, byte per second, or randomly drop packets.
 - [tee]: Broadcast to all outputs.
-- [balance]: Choose one output for each stream. This has the "any" semantic while `tee` is "all".
+- [balance]: Choose one output for each stream ("anycast").
 - [drop]: Discard whatever received.
 - [echo]: Reply whatever received.
 
@@ -116,7 +125,7 @@ socat -b65536 TCP-LISTEN:2000,fork TCP:127.0.0.1:5201
 sopipe 'tcp(2000) => tcp("127.0.0.1", 5201)'
 ```
 
-|        |  Description   |
+|        |   Throughput   |
 | ------ | -------------- |
 | Direct | 32.5 Gbits/sec |
 | Socat  | 16.1 Gbits/sec |

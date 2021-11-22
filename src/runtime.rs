@@ -81,7 +81,7 @@ impl api::Runtime for RuntimeHandler {
     }
 
     fn channel(&self) -> (Self::Address, Self::Mailbox) {
-        // TODO: componenets give hints about buffer size, so that fast components (like xor) don't increase the overal buffer in the pipeline
+        // TODO: componenets give hints about buffer size, so that fast components don't increase the overal buffer in the pipeline
         let (tx, rx) = tokio::sync::mpsc::channel(4);
         (Address(tx), Mailbox(rx))
     }
