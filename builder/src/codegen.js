@@ -25,7 +25,7 @@ export default function codegen(workspace, compact) {
         }
 
         if (next) {
-            result += compact ? "=>" : " =>\n"
+            result += compact ? "=>" : "\n=> "
             gen(next)
         }
     }
@@ -61,7 +61,7 @@ export default function codegen(workspace, compact) {
 
     for (const top_block of workspace.getTopBlocks()) {
         gen(top_block)
-        result += compact ? " " : "\n"
+        result += compact ? " " : "\n\n"
     }
 
     return result
