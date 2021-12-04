@@ -10,6 +10,7 @@ pest_derive = "2.0"
 
 api = { path = "api" }
 
+aead = { path = "components/aead", optional = true }
 auth = { path = "components/auth", optional = true }
 balance = { path = "components/balance", optional = true }
 drop = { path = "components/drop", optional = true }
@@ -28,6 +29,6 @@ xor = { path = "components/xor", optional = true }
 core = ["tcp", "udp", "stdio", "exec"]
 
 # default includes most common components that supports static linking.
-default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee", "balance"]
+default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee", "balance", "aead"]
 
 [workspace]

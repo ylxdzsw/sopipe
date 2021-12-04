@@ -19,7 +19,7 @@ Sopipe is a single static linked binary that does not read or generate any file 
 ### Cli
 
 Sopipe expects one and only one argument: the input script. The behaviour of sopipe is controlled solely by the script.
-No commandline options are provided.
+No commandline options are provided and no environment variables are read.
 
 Shell tips: use single quote for the script so you don't need to escape the quotes and `!!` operations. For example:
 
@@ -45,8 +45,8 @@ three forms: key-value pair, key-only, or value-only. If no arguments are needed
 `!!` operators can used to composite two nodes, such that the one on the left is used for forwarding and the other for
 backwarding.
 
-`:=` operator binds a node to a name. This is necessary for some nodes that expect multiple outputs. The RHS of the `:=`
-operation can be a pipe `=>`, in which case the last node in the pipe is bind to the name.
+`:=` operator binds a node to a name. This is necessary for feeding multiple inputs to a node. The RHS of the `:=`
+operation can be a pipe `=>`, in which case the last node in the pipe is bound to the name.
 
 `$a.b => foo()` connects `$a` and `foo()` with a specific name `b`. Some components use names to recognize the role of
 each output. Named outputs can also be specified inline. For example, `foo(.b => bar()) => baz()` will connect a `foo`
@@ -102,8 +102,11 @@ Currently the following components are avaliable. More to come™.
 #### Encryption
 
 - [xor]: Not really encrypt, but `xor` the stream with a fixed key.
+- [aead]: Various AEAD cyphers using [ring].
 
 [xor]: https://github.com/ylxdzsw/sopipe/tree/master/components/xor
+[aead]: https://github.com/ylxdzsw/sopipe/tree/master/components/aead
+[ring]: https://github.com/briansmith/ring
 
 #### Scripting / Debugging
 

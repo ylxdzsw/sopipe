@@ -51,6 +51,9 @@ fn main() {
 
     // TODO: use https://github.com/dtolnay/inventory to register the plugins?
 
+    #[cfg(feature = "aead")]
+    components.push(aead::init());
+
     #[cfg(feature = "auth")]
     components.push(auth::init());
 

@@ -1,0 +1,6 @@
+exec
+====
+
+### Arguments
+
+like execlp
