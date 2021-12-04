@@ -140,12 +140,17 @@ impl Actor {
         while let Some(mut msg) = mail.recv().await {
             // every packet is encrypted twice, one for the length and one for the content, without aad
 
-            if msg.len() > u16::MAX as _ {
+            if msg.is_empty() {
+                continue
+            }
+
+            let length_msg = msg.len() - 1;
+            if length_msg > u16::MAX as _ {
                 todo!()
             }
 
             let mut buf = Vec::with_capacity(2 + self.algo.tag_len() + msg.len() + self.algo.tag_len());
-            buf.extend_from_slice(&u16::to_be_bytes(msg.len() as _));
+            buf.extend_from_slice(&u16::to_be_bytes(length_msg as _));
             sealing_key.seal_in_place_append_tag(Aad::empty(), &mut buf).unwrap();
 
             let tag = sealing_key.seal_in_place_separate_tag(Aad::empty(), &mut msg).unwrap();
@@ -186,7 +191,7 @@ impl Actor {
             accumulate_buf_until_length!(length_msg_offset);
 
             let length = match opening_key.open_in_place(Aad::empty(), &mut buf[..length_msg_offset]) {
-                Ok(plain_text) => u16::from_be_bytes(plain_text[..2].try_into().unwrap()) as usize,
+                Ok(plain_text) => u16::from_be_bytes(plain_text[..2].try_into().unwrap()) as usize + 1,
                 Err(_) => return eprintln!("aead: decryption failed")
             };
 

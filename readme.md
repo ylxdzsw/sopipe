@@ -142,5 +142,18 @@ sopipe 'tcp(2000) => tcp("127.0.0.1", 5201)'
 | Socat  | 16.1 Gbits/sec |
 | Sopipe | 12.4 Gbits/sec |
 
+Addtional benchmarks:
+
+```sh
+sopipe 'tcp(2000) => xor("a") => xor("a") => tcp("localhost:5201")'
+sopipe 'tcp(2000) => aead_encode("a") => aead_decode("a") => tcp("localhost:5201")'
+```
+
+|      |   Throughput   |
+| ---- | -------------: |
+| XOR  |  677 Mbits/sec |
+| AEAD | 3.35 Gbits/sec |
+
+
 ## Gallery
 
