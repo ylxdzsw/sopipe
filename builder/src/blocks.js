@@ -80,6 +80,16 @@ export default function load_blocks(Blockly) {
     }
 
     const blocks = [{
+        name: 'aead_encode',
+        comp_name: 'aead',
+        category: 'Encryption',
+        default_arg_names: ['key']
+    }, {
+        name: 'aead_decode',
+        comp_name: 'aead',
+        category: 'Encryption',
+        default_arg_names: ['key']
+    }, {
         name: 'auth',
         category: 'Authentication',
         default_arg_names: ['key', 'salt']
