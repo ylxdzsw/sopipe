@@ -1,10 +1,12 @@
 Sopipe
 ======
 
-Sopipe is socat with middlewares. It can be used for secured* and accelerated data transfer with arbitrarily chained
-encryption, compression, authentication, and error correction (WIP).
+Sopipe aims to be [socat] with middlewares. It can be used for secured* and accelerated data transfer with arbitrarily
+chained encryption, compression, authentication, and error correction (WIP).
 
 \* Sopipe has not undergone any security review. The encryption-related components should be used at own risk.
+
+[socat]: http://www.dest-unreach.org/socat/
 
 ## Installation
 
@@ -159,6 +161,30 @@ sopipe 'tcp(2000) => deflate => inflate => tcp("localhost:5201")'
 | XOR   |  677 Mbits/sec |
 | AEAD  | 3.35 Gbits/sec |
 | MINIZ |  812 Mbits/sec |
+
+## Building Instruction
+
+Building static linked binary with all features (the command used in CI):
+
+```sh
+RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target x86_64-unknown-linux-gnu
+```
+
+Building dynamic linked binary with all features and optimized for your CPU architechture:
+
+```sh
+RUSTFLAGS="-C target-cpu=native" cargo build --release
+```
+
+Sopipe supports building with arbitrary selection of components. For example, a tiny build that only includes `tcp` and
+`socks5`:
+
+```sh
+cargo build --no-default-features --features tcp,socks5
+```
+
+For simplicity, Sopipe also provides a feature called `core` that includes most endpoints (e.g. `tcp` etc.). It can be
+used as the "base" for custom builds.
 
 ## Gallery
 
