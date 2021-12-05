@@ -1,13 +1,10 @@
 Sopipe
 ======
 
-Sopipe is socat with middlewares. It can be used for NAT penetration, secured* and accelerated transmission, tunnelling,
-port forwarding, proxying<sup>†</sup>, etc. with arbitrarily chained encryption, compression, authentication, and error
-correction.
+Sopipe is socat with middlewares. It can be used for secured* and accelerated data transfer with arbitrarily chained
+encryption, compression, authentication, and error correction (WIP).
 
-\* Sopipe has not undergone any security review. The encryption-related components should be used at own risk. <br>
-<sup>†</sup> Sopipe is not designed for circumventing censorship. The authors and contributors do not take any
-responsibility for abuse or misuse of this software.
+\* Sopipe has not undergone any security review. The encryption-related components should be used at own risk.
 
 ## Installation
 
@@ -154,13 +151,61 @@ Addtional benchmarks:
 ```sh
 sopipe 'tcp(2000) => xor("a") => xor("a") => tcp("localhost:5201")'
 sopipe 'tcp(2000) => aead_encode("a") => aead_decode("a") => tcp("localhost:5201")'
+sopipe 'tcp(2000) => deflate => inflate => tcp("localhost:5201")'
 ```
 
-|      |   Throughput   |
-| ---- | -------------: |
-| XOR  |  677 Mbits/sec |
-| AEAD | 3.35 Gbits/sec |
-
+|       |   Throughput   |
+| ----- | -------------: |
+| XOR   |  677 Mbits/sec |
+| AEAD  | 3.35 Gbits/sec |
+| MINIZ |  812 Mbits/sec |
 
 ## Gallery
 
+### Port forwarding
+
+Forward local TCP port 2000 to 22.
+
+```sh
+$ sopipe 'tcp(2000) => tcp("localhost:22")'
+```
+
+Make a relay that forwards TCP port 2000 to a server, but only for authenticated users. The traffic is encrypted from
+the user to the server and the relay cannot inspect.
+
+```sh
+(user)$ sopipe 'tcp(2000) => aead_encode("encrypt pass") => auth_client("auth pass") => tcp("relay", 2000)'
+(relay)$ sopipe 'tcp(2000) => auth_server("auth pass") => tcp("server", 2000)'
+(server)$ sopipe 'tcp(2000) => aead_decode("encrypt pass") => tcp("localhost:22")'
+```
+
+### Proxying
+
+Make a socks5 server but the traffic is compressed.
+
+```sh
+(client)$ sopipe 'tcp(8080) => deflate(level=4) => tcp("proxy:8080")'
+(server)$ sopipe 'tcp(8080) => inflate => socks5_server => tcp'
+```
+
+### Debugging
+
+Forward UDP packets from port 2000 to port 2001, but randomly drop 20% packets.
+
+```sh
+$ sopipe 'udp(2000) => throttle(drop_rate=20) => udp("localhost:2001")'
+```
+
+Forward TCP traffic but limits to 100KB/s.
+
+```sh
+$ sopipe 'tcp(2000) => throttle(size=102400, interval=1000) => tcp("localhost:2001")'
+```
+
+### Other
+
+Forward local TCP port 2000 to 2001, record messages in a file, and drop all messages sent back.
+
+```sh
+$ sopipe 'tcp(2000) => exec("tee", "record.txt") !! drop => tcp("localhost:2001")'
+```
