@@ -69,6 +69,9 @@ fn main() {
     #[cfg(feature = "exec")]
     components.push(exec::init());
 
+    #[cfg(feature = "miniz")]
+    components.push(miniz::init());
+
     #[cfg(feature = "socks5")]
     components.push(socks5::init());
 

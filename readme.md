@@ -108,6 +108,13 @@ Currently the following components are avaliable. More to come™.
 [aead]: https://github.com/ylxdzsw/sopipe/tree/master/components/aead
 [ring]: https://github.com/briansmith/ring
 
+#### Compression
+
+- [miniz]: Compression with [miniz_oxide].
+
+[miniz]: https://github.com/ylxdzsw/sopipe/tree/master/components/miniz
+[miniz_oxide]: https://github.com/Frommi/miniz_oxide
+
 #### Scripting / Debugging
 
 - [exec]: Spawn an external process and connect to its STDIN / STDOUT. This allows integrating virtually anything with

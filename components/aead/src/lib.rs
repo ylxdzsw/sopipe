@@ -58,7 +58,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
         let config: Config = api::parse_args(&arguments).unwrap();
 
         if config.outputs.len() != 1 {
-            panic!("auth must have exactly 1 output")
+            panic!("aead must have exactly 1 output")
         }
 
         let algo = match config.algorithm.to_lowercase().trim() {

@@ -1,0 +1,8 @@
+[package]
+name = "miniz"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+api = { path = "../../api" }
+miniz_oxide = "0.5"
