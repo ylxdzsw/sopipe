@@ -37,12 +37,12 @@ impl<R: api::Runtime> api::Component<R> for Component {
         let key = derive_key(salt, config.key.as_bytes());
 
         match &config.method[..] {
-            "" | "time" => match config.function_name {
+            "time" => match config.function_name {
                 "auth_client" => Box::new(time::Client::new(key)),
                 "auth_server" => Box::new(time::Server::new(key)),
                 _ => unreachable!()
             }
-            "challenge" => match config.function_name {
+            "" | "challenge" => match config.function_name {
                 "auth_client" => Box::new(challenge::Client::new(key)),
                 "auth_server" => Box::new(challenge::Server::new(key)),
                 _ => unreachable!()

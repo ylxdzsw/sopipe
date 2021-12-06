@@ -38,7 +38,7 @@ impl<R: api::Runtime> api::Actor<R> for Client {
     }
 }
 
-// Problem: if some users who have the key purposely adjust thier clocks to be slightly faster and keep making connections, they can block other users because this would sets LAST_TIME to be earlier than actual clock.
+// Problem: if some users who have the key purposely adjust their clocks to be slightly faster and keep making connections, they can block other users because this would sets LAST_TIME to be earlier than actual clock.
 static LAST_TIME: AtomicU64 = AtomicU64::new(0); // this is shared across all streams because they all share the same key.
 
 pub struct Server {
