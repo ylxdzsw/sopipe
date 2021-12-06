@@ -1,5 +1,3 @@
-use api::{Address, Mailbox};
-
 struct Component;
 
 struct Actor;
@@ -21,14 +19,7 @@ impl<R: api::Runtime> api::Component<R> for Component {
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
     fn spawn(&'static self, runtime: R, _metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
-        let (mut address, mut mailbox) = (address.unwrap(), mailbox.unwrap());
-        runtime.spawn_task(async move {
-            while let Some(msg) = mailbox.recv().await {
-                if address.send(msg).await.is_err() {
-                    return
-                }
-            }
-        });
+        runtime.spawn_task(api::pass(address, mailbox));
     }
 }
 
