@@ -162,6 +162,21 @@ sopipe 'tcp(2000) => deflate => inflate => tcp("localhost:5201")'
 | AEAD  | 3.35 Gbits/sec |
 | MINIZ |  812 Mbits/sec |
 
+Testing HTTP performance via https://www.speedtest.net/
+
+```sh
+$ sopipe 'tcp(2000) => socks5_server => tcp'
+$ sopipe 'tcp(1080) => tcp("localhost:2000")'
+$ sopipe 'tcp(2000) => auth_server("a") => aead_decode("x") => socks5_server => tcp'
+$ sopipe 'tcp(1080) => aead_encode("x") => auth_client("a") => tcp("localhost:2000")'
+```
+
+|                      | Ping  |  Download  |  Upload   |
+| -------------------- | ----: | ---------: | --------: |
+| direct               | 189ms | 20.02 Mbps | 6.17 Mbps |
+| socks5               | 194ms | 20.29 Mbps | 7.31 Mbps |
+| socks5 + auth + aead | 187ms | 13.89 Mbps | 8.81 Mbps |
+
 ## Building Instructions
 
 Building static linked binary with all features (the command used in CI):
