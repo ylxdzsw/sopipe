@@ -162,7 +162,7 @@ sopipe 'tcp(2000) => deflate => inflate => tcp("localhost:5201")'
 | AEAD  | 3.35 Gbits/sec |
 | MINIZ |  812 Mbits/sec |
 
-## Building Instruction
+## Building Instructions
 
 Building static linked binary with all features (the command used in CI):
 
@@ -182,9 +182,6 @@ Sopipe supports building with arbitrary selection of components. For example, a 
 ```sh
 cargo build --no-default-features --features tcp,socks5
 ```
-
-For simplicity, Sopipe also provides a feature called `core` that includes most endpoints (e.g. `tcp` etc.). It can be
-used as the "base" for custom builds.
 
 ## Gallery
 
