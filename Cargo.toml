@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.12", features = ["rt", "rt-multi-thread", "sync", "time", "signal"] } # "io-util", "io-std", "net", "process", "fs"
-pest = "2.0"
-pest_derive = "2.0"
+tokio = { version = "1.40", features = ["rt-multi-thread", "sync", "time", "signal"] } # "io-util", "io-std", "net", "process", "fs"
+pest = "2.7"
+pest_derive = "2.7"
 
 api = { path = "api" }
 

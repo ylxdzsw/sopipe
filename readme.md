@@ -17,10 +17,8 @@ Sopipe is a single static linked binary that does not read or generate any file 
 
 ### Cli
 
-Sopipe expects one and only one argument: the input script. The behaviour of sopipe is controlled solely by the script.
-No commandline options are provided and no environment variables are read.
-
-Shell tips: use single quote for the script so you don't need to escape the quotes and `!!` operations. For example:
+Sopipe expects only one argument: the script. The behaviour of sopipe is controlled solely by the script. No commandline
+options are provided and no environment variables are read. Example:
 
 ```sh
 sopipe 'stdin => exec("tee", "record.txt") !! drop => stdout'
@@ -63,15 +61,12 @@ stdio => tee(
 
 ### Blockly Builder
 
-Why write scripts when you can just drag and drop some colorful blocks? Try the builder at
-[https://blog.ylxdzsw.com/sopipe/](https://blog.ylxdzsw.com/sopipe/). Note that the builder is unfinished and not all
-scripts can be built using the builder (e.g. currently it does not support multiple inputs or outputs).
+Why write scripts when you can just drag and drop some colorful blocks? Try the experimental builder at
+[https://blog.ylxdzsw.com/sopipe/](https://blog.ylxdzsw.com/sopipe/).
 
 ![screenshot of the builder](builder/public/screenshot.png)
 
 ## Modules
-
-Currently the following components are avaliable. More to come™.
 
 #### Endpoints
 
@@ -162,7 +157,7 @@ sopipe 'tcp(2000) => deflate => inflate => tcp("localhost:5201")'
 | AEAD  | 3.35 Gbits/sec |
 | MINIZ |  812 Mbits/sec |
 
-Testing HTTP performance via https://www.speedtest.net/
+Testing HTTP performance using https://www.speedtest.net/ in a 4G mobile network.
 
 ```sh
 $ sopipe 'tcp(2000) => socks5_server => tcp'
