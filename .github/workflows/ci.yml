@@ -29,7 +29,7 @@ jobs:
         if: matrix.name != 'x86_64-windows-msvc'
       - run: mv target/${{ matrix.target }}/release/sopipe.exe target/${{ matrix.target }}/release/sopipe
         if: matrix.name == 'x86_64-windows-msvc'
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: sopipe-${{ matrix.name }}
           path: target/${{ matrix.target }}/release/sopipe
@@ -40,7 +40,7 @@ jobs:
     needs: [test]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
       - run: |
           mkdir artifacts
           mv sopipe-x86_64-linux-gnu/sopipe artifacts/sopipe-x86_64-linux-gnu
