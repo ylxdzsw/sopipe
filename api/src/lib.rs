@@ -44,5 +44,3 @@ pub trait Component<R: Runtime>: Sync {
     /// outputs (List<String>): the names of outputs. Unamed outputs have empty names.
     fn create(&'static self, arguments: Vec<(String, Argument)>) -> Box<dyn Actor<R>>;
 }
-
-

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.40", features = ["rt-multi-thread", "sync", "time", "signal"] } # "io-util", "io-std", "net", "process", "fs"
+tokio = { version = "1.40", features = ["rt-multi-thread", "sync", "signal"] }
 pest = "2.7"
 pest_derive = "2.7"
 

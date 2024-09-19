@@ -45,53 +45,50 @@ impl Node {
     }
 }
 
-#[allow(clippy::vec_init_then_push)]
 fn main() {
-    let mut components = vec![];
+    let components = vec![
+        #[cfg(feature = "aead")]
+        aead::init(),
 
-    // TODO: use https://github.com/dtolnay/inventory to register the plugins?
+        #[cfg(feature = "auth")]
+        auth::init(),
 
-    #[cfg(feature = "aead")]
-    components.push(aead::init());
+        #[cfg(feature = "balance")]
+        balance::init(),
 
-    #[cfg(feature = "auth")]
-    components.push(auth::init());
+        #[cfg(feature = "drop")]
+        drop::init(),
 
-    #[cfg(feature = "balance")]
-    components.push(balance::init());
+        #[cfg(feature = "echo")]
+        echo::init(),
 
-    #[cfg(feature = "drop")]
-    components.push(drop::init());
+        #[cfg(feature = "exec")]
+        exec::init(),
 
-    #[cfg(feature = "echo")]
-    components.push(echo::init());
+        #[cfg(feature = "miniz")]
+        miniz::init(),
 
-    #[cfg(feature = "exec")]
-    components.push(exec::init());
+        #[cfg(feature = "socks5")]
+        socks5::init(),
 
-    #[cfg(feature = "miniz")]
-    components.push(miniz::init());
+        #[cfg(feature = "stdio")]
+        stdio::init(),
 
-    #[cfg(feature = "socks5")]
-    components.push(socks5::init());
+        #[cfg(feature = "tcp")]
+        tcp::init(),
 
-    #[cfg(feature = "stdio")]
-    components.push(stdio::init());
+        #[cfg(feature = "tee")]
+        tee::init(),
 
-    #[cfg(feature = "tcp")]
-    components.push(tcp::init());
+        #[cfg(feature = "throttle")]
+        throttle::init(),
 
-    #[cfg(feature = "tee")]
-    components.push(tee::init());
+        #[cfg(feature = "udp")]
+        udp::init(),
 
-    #[cfg(feature = "throttle")]
-    components.push(throttle::init());
-
-    #[cfg(feature = "udp")]
-    components.push(udp::init());
-
-    #[cfg(feature = "xor")]
-    components.push(xor::init());
+        #[cfg(feature = "xor")]
+        xor::init(),
+    ];
 
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 2 {
