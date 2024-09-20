@@ -86,6 +86,9 @@ fn main() {
         #[cfg(feature = "udp")]
         udp::init(),
 
+        #[cfg(feature = "vmess")]
+        vmess::init(),
+
         #[cfg(feature = "xor")]
         xor::init(),
     ];

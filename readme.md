@@ -82,8 +82,10 @@ Why write scripts when you can just drag and drop some colorful blocks? Try the 
 #### Proxying
 
 - [socks5]: The [SOCKS protocol](https://tools.ietf.org/html/rfc1928).
+- [vmess]: The [VMess protocol](https://www.v2fly.org/developer/protocols/vmess.html).
 
 [socks5]: https://github.com/ylxdzsw/sopipe/tree/master/components/socks5
+[vmess]: https://github.com/ylxdzsw/sopipe/tree/master/components/vmess
 
 #### Authentication
 

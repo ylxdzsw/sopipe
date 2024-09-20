@@ -23,6 +23,7 @@ tcp = { path = "components/tcp", optional = true }
 tee = { path = "components/tee", optional = true }
 throttle = { path = "components/throttle", optional = true }
 udp = { path = "components/udp", optional = true }
+vmess = { path = "components/vmess", optional = true }
 xor = { path = "components/xor", optional = true }
 
 [features]
@@ -30,6 +31,6 @@ xor = { path = "components/xor", optional = true }
 core = ["tcp", "udp", "stdio", "exec"]
 
 # default includes most common components that supports static linking.
-default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee", "balance", "aead", "miniz"]
+default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee", "balance", "aead", "miniz", "vmess"]
 
 [workspace]
