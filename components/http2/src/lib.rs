@@ -91,7 +91,7 @@ impl Actor {
 
         runtime.spawn_task(async move {
             while let Some(data) = recv_stream.data().await {
-                let data = data.unwrap();
+                let data = data.unwrap(); // TODO: Error { kind: User(InactiveStreamId) }
                 address.send(data.iter().cloned().collect()).await.unwrap();
                 recv_stream.flow_control().release_capacity(data.len()).unwrap();
             }
