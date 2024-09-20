@@ -13,6 +13,7 @@ impl<R: api::Runtime> BufReader<R> {
     }
 
     // take the buffer and return the rest. If the buffer is empty, wait for the next non-empty message
+    #[allow(dead_code)]
     async fn take(&mut self) -> Option<Box<[u8]>> {
         while self.pos == self.buffer.len() {
             self.pos = 0;

@@ -74,7 +74,7 @@ Why write scripts when you can just drag and drop some colorful blocks? Try the 
   `socks5_server`), the output `tcp` node don't need arguments about destination.
 - [udp]: Similar to `tcp` but for UDP.
 - [stdio]: Read or write to STDIN / STDOUT.
-- [http2]: HTTP2 connection over TLS and TCP.
+- [http2]: HTTP2 connection over TLS.
 
 [tcp]: https://github.com/ylxdzsw/sopipe/tree/master/components/tcp
 [udp]: https://github.com/ylxdzsw/sopipe/tree/master/components/udp
@@ -115,8 +115,7 @@ Why write scripts when you can just drag and drop some colorful blocks? Try the 
 
 #### Scripting / Debugging
 
-- [exec]: Spawn an external process and connect to its STDIN / STDOUT. This allows integrating virtually anything with
-  substantial performance penalty.
+- [exec]: Spawn an external process and connect to its STDIN / STDOUT.
 - [throttle]: Limit the flow rate like packets per second, byte per second, or randomly drop packets.
 - [tee]: Broadcast to all outputs.
 - [balance]: Choose one output for each stream ("anycast").

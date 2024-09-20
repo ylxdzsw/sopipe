@@ -21,7 +21,10 @@ jobs:
           target: ${{ matrix.target }}
       - run: sudo apt-get install musl-tools
         if: matrix.name == 'x86_64-linux-musl'
+      - run: cargo test --all --features full --target ${{ matrix.target }}
+        if: matrix.name != 'x86_64-linux-musl'
       - run: cargo test --all --target ${{ matrix.target }}
+        if: matrix.name == 'x86_64-linux-musl'
       - run: cargo build --release --target ${{ matrix.target }}
         env:
             RUSTFLAGS: -C target-feature=+crt-static

@@ -111,3 +111,5 @@ impl Actor {
 pub fn init<R: api::Runtime>() -> &'static dyn api::Component<R> {
     &Component {}
 }
+
+// TODO: this component does not support static linking, perhaps due to TLS dependency. Try rustls?

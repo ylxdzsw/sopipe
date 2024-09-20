@@ -28,10 +28,10 @@ vmess = { path = "components/vmess", optional = true }
 xor = { path = "components/xor", optional = true }
 
 [features]
-# core includes most endpoints. It serves as the basis for "slim" builds.
-core = ["tcp", "udp", "stdio", "exec"]
+# default includes components that support static linking.
+default = ["tcp", "udp", "stdio", "exec", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee", "balance", "aead", "miniz", "vmess"]
 
-# default includes most common components that supports static linking.
-default = ["core", "xor", "echo", "socks5", "drop", "throttle", "auth", "tee", "balance", "aead", "miniz", "vmess", "http2"]
+# full includes all features.
+full = ["default", "http2"]
 
 [workspace]

@@ -111,6 +111,10 @@ export default function load_blocks(Blockly) {
         comp_name: 'socks5',
         category: 'Proxying',
     }, {
+        name: 'vmess_client',
+        comp_name: 'vmess',
+        category: 'Proxying',
+    }, {
         name: 'stdio',
         comp_name: 'stdio',
         category: 'Endpoints',
@@ -126,6 +130,11 @@ export default function load_blocks(Blockly) {
         category: 'Endpoints',
     }, {
         name: 'tcp',
+        category: 'Endpoints',
+    }, {
+        name: 'http2_client',
+        comp_name: 'http2',
+        sink_only: true,
         category: 'Endpoints',
     }, {
         name: 'tee',
