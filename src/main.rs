@@ -65,6 +65,9 @@ fn main() {
         #[cfg(feature = "exec")]
         exec::init(),
 
+        #[cfg(feature = "http2")]
+        http2::init(),
+
         #[cfg(feature = "miniz")]
         miniz::init(),
 

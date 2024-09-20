@@ -1,0 +1,12 @@
+[package]
+name = "http2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+api = { path = "../../api" }
+tokio = { version = "1.12", features = ["io-util"] }
+h2 = "0.4"
+tokio-native-tls = "0.3"
+native-tls = { version = "*", features = ["alpn"] }
+http = "1.1"

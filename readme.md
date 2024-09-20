@@ -74,10 +74,12 @@ Why write scripts when you can just drag and drop some colorful blocks? Try the 
   `socks5_server`), the output `tcp` node don't need arguments about destination.
 - [udp]: Similar to `tcp` but for UDP.
 - [stdio]: Read or write to STDIN / STDOUT.
+- [http2]: HTTP2 connection over TLS and TCP.
 
 [tcp]: https://github.com/ylxdzsw/sopipe/tree/master/components/tcp
 [udp]: https://github.com/ylxdzsw/sopipe/tree/master/components/udp
 [stdio]: https://github.com/ylxdzsw/sopipe/tree/master/components/stdio
+[http2]: https://github.com/ylxdzsw/sopipe/tree/master/components/http2
 
 #### Proxying
 

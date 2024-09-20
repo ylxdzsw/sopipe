@@ -250,7 +250,7 @@ fn forward_handshake_msg(user_id: [u8; 16], addr: Addr, port: u16, key: [u8; 16]
     buffer.push(opt);
 
     const P_len: u8 = 0;
-    let sec = 0; // AES-128-CFB
+    let sec = 1; // AES-128-CFB
     buffer.push((P_len << 4) | (sec & 0x0f));
 
     let rev = 0; // reserved
@@ -301,3 +301,8 @@ fn forward_msg(encoder: &mut AES128CFB, data: &[u8]) -> Box<[u8]> {
     encoder.encode(&mut buf);
     buf.into()
 }
+
+// TODO: VMessAEAD? it is not documneted anywhere but seems to be simple
+// search "isAEAD" in https://github.com/v2fly/v2ray-core/blob/master/proxy/vmess/encoding/client.go
+// basically it replaces the md5+timestamp with aead
+// otherwise we need to start the server with V2RAY_VMESS_AEAD_FORCED=false environment variable
