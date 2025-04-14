@@ -196,6 +196,17 @@ Sopipe supports building with arbitrary selection of components. For example, a 
 cargo build --no-default-features --features tcp,socks5
 ```
 
+### Docker (Containers)
+
+In case of Docker/Podman/etc, if required, it should be possible to execute the Cargo commands using a container ofcourse, including the Docker official image - [Rust](<https://hub.docker.com/_/rust>):
+
+```sh
+# mkdir ./sopipe;
+# git clone -- https://... .;
+docker run -itu "$( id -u ):$( id -g; )" -v "$( pwd -P; ):/entry/" --workdir '/entry/' --rm -- rust bash;
+# RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --target x86_64-unknown-linux-gnu
+```
+
 ## Gallery
 
 ### Port forwarding
