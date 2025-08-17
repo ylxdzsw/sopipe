@@ -87,11 +87,9 @@ impl Actor {
                 last_tick = tokio::time::Instant::now();
             }
 
-            if let Some(drop_rate) = self.drop_rate {
-                if rand::random::<f64>() < drop_rate {
-                    eprintln!("dropped one");
-                    continue
-                }
+            if let Some(drop_rate) = self.drop_rate && rand::random::<f64>() < drop_rate {
+                eprintln!("dropped one");
+                continue
             }
 
             if let Some(n_packets) = &mut budget.n_packets {

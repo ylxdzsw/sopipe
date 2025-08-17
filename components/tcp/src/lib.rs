@@ -118,7 +118,7 @@ impl Actor {
                 runtime.spawn_task(write_tcp(writer, mailbox));
             },
             Err(e) => {
-                eprintln!("connection error = {}", e);
+                eprintln!("connection error = {e}");
                 // what to do? retry?
             },
         }
@@ -141,7 +141,7 @@ impl Actor {
         while let api::RunLevel::Run = runtime.get_runlevel() {
             match tokio::time::timeout(Duration::from_secs(1), listener.accept()).await {
                 Ok(Ok((stream, origin))) => {
-                    eprintln!("Accepted connection from {:?}", origin);
+                    eprintln!("Accepted connection from {origin:?}");
                     let mut meta = api::MetaData::default();
                     meta.set("stream_type".into(), "TCP".to_string());
                     meta.set("origin_addr".into(), origin);
@@ -159,7 +159,7 @@ impl Actor {
                     }
                 },
                 Ok(Err(err)) => {
-                    eprintln!("accept error = {}", err)
+                    eprintln!("accept error = {err}")
                 }
                 Err(_) => {} // timeout, check runlevel and listen again
             }
@@ -176,7 +176,7 @@ async fn read_tcp(mut stream: impl AsyncReadExt + Unpin, mut addr: impl api::Add
                 return
             }
             Err(e) => {
-                eprintln!("IO error: {}", e);
+                eprintln!("IO error: {e}");
                 return
             }
         }

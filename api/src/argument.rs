@@ -1,12 +1,13 @@
 use serde::Deserialize;
 
 /// An enum type that represents user arguments
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[serde(untagged)]
 pub enum Argument {
     String(String),
     Int(u64),
     Vec(Vec<Argument>),
+    #[default]
     None
 }
 
@@ -61,12 +62,5 @@ impl Argument {
 
     pub fn is_none(&self) -> bool {
         matches!(self, &Argument::None)
-    }
-}
-
-// for #[serde(default)]
-impl Default for Argument {
-    fn default() -> Self {
-        Argument::None
     }
 }

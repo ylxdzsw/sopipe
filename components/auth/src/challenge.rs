@@ -90,7 +90,7 @@ impl<R: api::Runtime> api::Actor<R> for Server {
             let (mac, rest) = buf.split_at(ALGORITHM.digest_algorithm().output_len);
             if ring::hmac::verify(&self.key, &nounce, mac).is_err() {
                 if let Some(origin) = metadata.get::<std::net::SocketAddr>("origin_addr") {
-                    eprintln!("auth: failed attempt from {}", origin)
+                    eprintln!("auth: failed attempt from {origin}")
                 } else {
                     eprintln!("auth: failed attempt")
                 }

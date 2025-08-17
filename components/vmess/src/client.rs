@@ -33,7 +33,7 @@ impl<R: api::Runtime> BufReader<R> {
     /// read a slice of data of specified length, wait for more data when necessary.
     async fn read_exact(&mut self, len: usize) -> Option<&[u8]> {
         if self.pos + len > self.buffer.len() {
-            let mut buffer: Vec<u8> = self.buffer[self.pos..].iter().copied().collect();
+            let mut buffer: Vec<u8> = self.buffer[self.pos..].to_vec();
             while buffer.len() < len {
                 if let Some(mail) = self.mailbox.recv().await {
                     buffer.extend_from_slice(&mail);
@@ -207,7 +207,7 @@ async fn backward_read<R: api::Runtime>(reader: &mut BufReader<R>, decoder: &mut
     let mut temp = [0; 4];
 
     // 1. read and decode length
-    temp[..2].copy_from_slice(&reader.read_exact(2).await?);
+    temp[..2].copy_from_slice(reader.read_exact(2).await?);
     decoder.decode(&mut temp[..2]);
     let len = (temp[0] as usize) << 8 | temp[1] as usize;
 

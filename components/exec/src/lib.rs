@@ -54,9 +54,7 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
             Ok(child) => {
                 pipe_exec(runtime, child, address.unwrap(), mailbox.unwrap());
             },
-            Err(e) => {
-                eprintln!("{}", e);
-            },
+            Err(e) => eprintln!("{e}"),
         }
     }
 
@@ -65,9 +63,7 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
             Ok(child) => {
                 pipe_exec(runtime, child, address.unwrap(), mailbox.unwrap());
             },
-            Err(e) => {
-                eprintln!("{}", e);
-            },
+            Err(e) => eprintln!("{e}"),
         }
     }
 
@@ -82,9 +78,7 @@ impl<R: api::Runtime> api::Actor<R> for Actor {
             Ok(child) => {
                 pipe_exec(runtime, child, forward_address, backward_mailbox);
             },
-            Err(e) => {
-                eprintln!("{}", e);
-            },
+            Err(e) => eprintln!("{e}"),
         }
     }
 }
@@ -111,7 +105,7 @@ fn pipe_exec(runtime: impl api::Runtime, mut child: tokio::process::Child, mut a
         let _alive = child_rc_1;
         while let Some(msg) = mail.recv().await {
             if let Err(e) = child_stdin.write_all(&msg).await {
-                eprintln!("error writing child process: {}", e);
+                eprintln!("error writing child process: {e}");
                 return
             }
         }
@@ -129,7 +123,7 @@ fn pipe_exec(runtime: impl api::Runtime, mut child: tokio::process::Child, mut a
                     }
                 },
                 Err(e) => {
-                    eprintln!("error reading child process: {}", e);
+                    eprintln!("error reading child process: {e}");
                     return
                 },
             }

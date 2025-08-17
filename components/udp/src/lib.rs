@@ -150,14 +150,14 @@ impl Actor {
             let mut buffer = vec![0; 65536].into_boxed_slice();
             match tokio::time::timeout(Duration::from_secs(1), listener.recv_from(&mut buffer[..])).await {
                 Ok(Ok((n, origin))) => {
-                    eprintln!("Recieved UDP packet from {:?}", origin);
+                    eprintln!("Recieved UDP packet from {origin:?}");
 
                     if address.send(Box::from(&buffer[..n])).await.is_err() {
                         return;
                     }
                 }
                 Ok(Err(err)) => {
-                    eprintln!("accept error = {}", err)
+                    eprintln!("accept error = {err}")
                 }
                 Err(_) => {} // timeout, check runlevel and listen again
             }
@@ -175,7 +175,7 @@ async fn read_udp(socket: Arc<UdpSocket>, mut addr: impl api::Address) {
                 }
             }
             Ok(Err(e)) => {
-                eprintln!("IO error: {}", e);
+                eprintln!("IO error: {e}");
                 return;
             }
             Err(_) => return, // timeout, assume the UDP session is end

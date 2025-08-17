@@ -68,12 +68,12 @@ impl<R: Runtime> api::Actor<R> for Actor {
                 let [ver, cmd, _rev, atyp]: [u8; 4] = header.try_into().unwrap();
 
                 if ver != 5 {
-                    eprintln!("unsupported socks version {}", ver);
+                    eprintln!("unsupported socks version {ver}");
                     return
                 }
 
                 if cmd != 1 {
-                    eprintln!("unsupported command type {}", cmd);
+                    eprintln!("unsupported command type {cmd}");
                 }
 
                 let (addr, slice) = match atyp {
@@ -81,14 +81,14 @@ impl<R: Runtime> api::Actor<R> for Actor {
                         let (addr, slice) = try_split_at!(slice, 4);
                         let addr: [u8; 4] = addr.try_into().unwrap();
                         let addr = std::net::Ipv4Addr::from(addr);
-                        let addr = format!("{}", addr);
+                        let addr = format!("{addr}");
                         (addr, slice)
                     },
                     0x04 => {
                         let (addr, slice) = try_split_at!(slice, 16);
                         let addr: [u8; 16] = addr.try_into().unwrap();
                         let addr = std::net::Ipv6Addr::from(addr);
-                        let addr = format!("{}", addr);
+                        let addr = format!("{addr}");
                         (addr, slice)
                     },
                     0x03 => {

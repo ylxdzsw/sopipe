@@ -24,7 +24,7 @@ pub enum ArgParseError {
 
 impl std::fmt::Display for ArgParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -32,7 +32,7 @@ impl std::error::Error for ArgParseError {}
 
 impl serde::de::Error for ArgParseError {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::DeserializeError(format!("{}", msg))
+        Self::DeserializeError(format!("{msg}"))
     }
 }
 
@@ -91,7 +91,7 @@ pub fn parse_args<'a, T: Deserialize<'a>>(args: &'a [(String, Argument)]) -> Res
     Ok(t)
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = ArgParseError;
 
     fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, ArgParseError> {

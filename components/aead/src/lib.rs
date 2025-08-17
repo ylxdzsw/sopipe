@@ -92,10 +92,8 @@ impl<R: api::Runtime> api::Component<R> for Component {
 
 impl<R: api::Runtime> api::Actor<R> for Actor {
     fn spawn(&'static self, runtime: R, metadata: api::MetaData, address: Option<R::Address>, mailbox: Option<R::Mailbox>) {
-        if let Some(stream_type) = metadata.get::<String>("stream_type") {
-            if stream_type == "UDP" {
-                eprintln!("WARNING: the aead module is not designed for UDP")
-            }
+        if let Some("UDP") = metadata.get::<String>("stream_type").map(|x| x.as_str()) {
+            eprintln!("WARNING: the aead module is not designed for UDP")
         }
 
         let (forward_address, forward_mailbox) = runtime.channel();

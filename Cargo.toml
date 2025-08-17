@@ -1,12 +1,12 @@
 [package]
 name = "sopipe"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-tokio = { version = "1.40", features = ["rt-multi-thread", "sync", "signal"] }
-pest = "2.7"
-pest_derive = "2.7"
+tokio = { version = "1.47", features = ["rt-multi-thread", "sync", "signal"] }
+pest = "2.8"
+pest_derive = "2.8"
 
 api = { path = "api" }
 
